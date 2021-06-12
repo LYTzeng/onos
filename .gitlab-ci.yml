@@ -9,3 +9,4 @@ build:
     - docker push $CI_REGISTRY/oscar/onos:latest
   tags:
     - SONA
+  timeout: 3 hours
