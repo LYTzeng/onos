@@ -325,6 +325,8 @@ public class K8sSwitchingArpHandler {
             return;
         }
 
+        log.info("Replying ARP: Target IP {}, Target MAC {}", targetIp, replyMac);
+
         Ethernet ethReply = ARP.buildArpReply(
                 targetIp.getIp4Address(),
                 replyMac,
