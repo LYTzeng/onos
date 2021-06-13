@@ -133,7 +133,7 @@ public class K8sRoutingArpHandler {
                 return;
             }
 
-            log.info("ARP reply from external gateway ip: {}, mac: {}", spa, sha);
+            log.info("[FUCK] ARP reply from external gateway ip: {}, mac: {}", spa, sha);
 
             k8sNodeService.completeNodes().stream()
                     .filter(n -> n.extGatewayMac() == null)
