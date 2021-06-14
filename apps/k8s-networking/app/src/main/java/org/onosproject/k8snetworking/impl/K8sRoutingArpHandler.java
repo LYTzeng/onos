@@ -156,7 +156,7 @@ public class K8sRoutingArpHandler {
 
                 k8sNodeService.completeNodes().forEach(n -> {
                     String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
-                    String podCidr = n.podCidr().split("\/")[0];
+                    String podCidr = n.podCidr().split("\\/")[0];
 
                     if (targetIpPostfix.equals(extGatewayIpPostfix) && senderPodCidr.equals(podCidr)) {
                         MacAddress replyMac = n.extGatewayMac();
@@ -174,7 +174,7 @@ public class K8sRoutingArpHandler {
                             context.inPacket().receivedFrom().deviceId(),
                             treatment,
                             ByteBuffer.wrap(ethReply.serialize())));
-                            
+
                         log.info("{} is at {}", tpa, replyMac.toString());
                     }
                 });
