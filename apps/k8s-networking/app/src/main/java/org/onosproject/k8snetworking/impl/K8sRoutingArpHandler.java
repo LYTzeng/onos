@@ -145,7 +145,32 @@ public class K8sRoutingArpHandler {
         else if (arp.getOpCode() == ARP.OP_REQUEST) {
             IpAddress spa = Ip4Address.valueOf(arp.getSenderProtocolAddress());
             MacAddress sha = MacAddress.valueOf(arp.getSenderHardwareAddress());
-            log.info("ARP request from external gateway ip: {}, mac: {}", spa, sha);
+            IpAddress tpa = Ip4Address.valueOf(arp.getTargetProtocolAddress());
+
+            log.info("Who has {} ? Tell {}({})", tpa, spa, sha);
+            if (tpa.toString().startsWith(NODE_IP_PREFIX)) {
+                String targetIpPostfix = tpa.toString().split("\\.", 3)[2];
+                k8sNodeService.completeNodes().forEach(n -> {
+                    String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
+                    if (targetIpPostfix == extGatewayIpPostfix) {
+                        MacAddress replyMac = n.extGatewayMac();
+                        Ethernet ethReply = ARP.buildArpReply(
+                            tpa.getIp4Address(),
+                            replyMac,
+                            ethernet);
+                        TrafficTreatment treatment = DefaultTrafficTreatment.builder()
+                        .setOutput(context.inPacket().receivedFrom().port())
+                        .build();
+                        packetService.emit(new DefaultOutboundPacket(
+                            context.inPacket().receivedFrom().deviceId(),
+                            treatment,
+                            ByteBuffer.wrap(ethReply.serialize())));
+                        context.block();
+                        log.info("{} is at {}", tpa, replyMac.toString());
+                        return;
+                    }
+                })
+            }
         }
     }
 
