@@ -148,11 +148,12 @@ public class K8sRoutingArpHandler {
             MacAddress sha = MacAddress.valueOf(arp.getSenderHardwareAddress());
             IpAddress tpa = Ip4Address.valueOf(arp.getTargetProtocolAddress());
 
-            log.info("Who has {} ? Tell {}({})", tpa, spa, sha);
             if (tpa.toString().startsWith(NODE_IP_PREFIX)) {
-                String targetIpPostfix = tpa.toString().split("\\.", 3)[2];
+                log.info("Who has {} ? Tell {}({})", tpa, spa, sha);
+                String targetIpPostfix = tpa.toString().split(".", 3)[2];
                 k8sNodeService.completeNodes().forEach(n -> {
-                    String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
+                    String extGatewayIpPostfix = n.extGatewayIp().toString().split(".", 3)[2];
+                    log.info("targetIpPostfix {}, extGatewayIpPostfix {}", targetIpPostfix, extGatewayIpPostfix);
                     if (targetIpPostfix == extGatewayIpPostfix) {
                         MacAddress replyMac = n.extGatewayMac();
                         Ethernet ethReply = ARP.buildArpReply(
