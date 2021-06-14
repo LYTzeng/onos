@@ -150,11 +150,11 @@ public class K8sRoutingArpHandler {
 
             if (tpa.toString().startsWith(NODE_IP_PREFIX)) {
                 log.info("Who has {} ? Tell {}({})", tpa, spa, sha);
-                String targetIpPostfix = tpa.toString().split(".", 3)[2];
+                String targetIpPostfix = tpa.toString().split("\\.", 3)[2];
                 k8sNodeService.completeNodes().forEach(n -> {
-                    String extGatewayIpPostfix = n.extGatewayIp().toString().split(".", 3)[2];
+                    String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
                     log.info("targetIpPostfix {}, extGatewayIpPostfix {}", targetIpPostfix, extGatewayIpPostfix);
-                    if (targetIpPostfix == extGatewayIpPostfix) {
+                    if (targetIpPostfix.equals(extGatewayIpPostfix)) {
                         MacAddress replyMac = n.extGatewayMac();
                         Ethernet ethReply = ARP.buildArpReply(
                             tpa.getIp4Address(),
