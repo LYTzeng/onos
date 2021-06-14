@@ -61,6 +61,7 @@ import static org.onosproject.k8snetworking.api.Constants.K8S_NETWORKING_APP_ID;
 import static org.onosproject.k8snetworking.api.Constants.NODE_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_POD_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_REPLY_RULE;
+import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getCclassIpPrefixFromCidr;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -149,27 +150,32 @@ public class K8sRoutingArpHandler {
             IpAddress tpa = Ip4Address.valueOf(arp.getTargetProtocolAddress());
 
             if (tpa.toString().startsWith(NODE_IP_PREFIX)) {
-                log.info("Who has {} ? Tell {}({})", tpa, spa, sha);
+                log.info("Who has {} ? Tell Pod {}({})", tpa, spa, sha);
                 String targetIpPostfix = tpa.toString().split("\\.", 3)[2];
+                String senderPodCidr = getCclassIpPrefixFromCidr(spa.toString());
+
                 k8sNodeService.completeNodes().forEach(n -> {
                     String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
-                    log.info("targetIpPostfix {}, extGatewayIpPostfix {}", targetIpPostfix, extGatewayIpPostfix);
-                    if (targetIpPostfix.equals(extGatewayIpPostfix)) {
+                    String podCidr = n.podCidr().split("\/")[0];
+
+                    if (targetIpPostfix.equals(extGatewayIpPostfix) && senderPodCidr.equals(podCidr)) {
                         MacAddress replyMac = n.extGatewayMac();
+
                         Ethernet ethReply = ARP.buildArpReply(
                             tpa.getIp4Address(),
                             replyMac,
                             ethernet);
+
                         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
                         .setOutput(context.inPacket().receivedFrom().port())
                         .build();
+
                         packetService.emit(new DefaultOutboundPacket(
                             context.inPacket().receivedFrom().deviceId(),
                             treatment,
                             ByteBuffer.wrap(ethReply.serialize())));
-                        context.block();
+                            
                         log.info("{} is at {}", tpa, replyMac.toString());
-                        return;
                     }
                 });
             }
