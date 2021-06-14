@@ -253,7 +253,7 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
         // we need grouping table for bypassing routing table which contains large
         // amount of flow rules which might cause performance degradation during
         // table lookup
-        setupJumpTable(k8sNode);
+        // setupJumpTable(k8sNode);
 
         // for routing and outbound table transition
         connectTables(deviceId, ROUTING_TABLE, STAT_EGRESS_TABLE);
