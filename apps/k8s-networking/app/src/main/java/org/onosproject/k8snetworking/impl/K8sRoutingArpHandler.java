@@ -133,7 +133,7 @@ public class K8sRoutingArpHandler {
                 return;
             }
 
-            log.info("[FUCK] ARP reply from external gateway ip: {}, mac: {}", spa, sha);
+            log.info("ARP reply from external gateway ip: {}, mac: {}", spa, sha);
 
             k8sNodeService.completeNodes().stream()
                     .filter(n -> n.extGatewayMac() == null)
@@ -141,6 +141,11 @@ public class K8sRoutingArpHandler {
                         K8sNode updated = n.updateExtGatewayMac(sha);
                         k8sNodeService.updateNode(updated);
                     });
+        }
+        else if (arp.getOpCode() == ARP.OP_REQUEST) {
+            IpAddress spa = Ip4Address.valueOf(arp.getSenderProtocolAddress());
+            MacAddress sha = MacAddress.valueOf(arp.getSenderHardwareAddress());
+            log.info("ARP request from external gateway ip: {}, mac: {}", spa, sha);
         }
     }
 
