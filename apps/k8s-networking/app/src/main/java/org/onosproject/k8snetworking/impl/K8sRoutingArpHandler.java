@@ -169,7 +169,7 @@ public class K8sRoutingArpHandler {
                         log.info("{} is at {}", tpa, replyMac.toString());
                         return;
                     }
-                })
+                });
             }
         }
     }
