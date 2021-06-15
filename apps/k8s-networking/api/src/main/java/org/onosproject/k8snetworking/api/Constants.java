@@ -43,9 +43,9 @@ public final class Constants {
     public static final MacAddress DEFAULT_GATEWAY_MAC =
                         MacAddress.valueOf(DEFAULT_GATEWAY_MAC_STR);
 
-    public static final String SHIFTED_IP_CIDR = "172.10.0.0/16";
-    public static final String SHIFTED_IP_PREFIX = "172.10";
-    public static final String SHIFTED_LOCAL_IP_PREFIX = "172.11";
+    // public static final String SHIFTED_IP_CIDR = "172.10.0.0/16";
+    // public static final String SHIFTED_IP_PREFIX = "172.10";
+    // public static final String SHIFTED_LOCAL_IP_PREFIX = "172.11";
     public static final String NODE_IP_PREFIX = "182";
 
     public static final String SRC = "src";
