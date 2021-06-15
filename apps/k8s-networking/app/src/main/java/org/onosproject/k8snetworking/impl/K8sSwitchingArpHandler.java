@@ -85,7 +85,7 @@ import static org.onosproject.k8snetworking.api.Constants.K8S_NETWORKING_APP_ID;
 import static org.onosproject.k8snetworking.api.Constants.NODE_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_CONTROL_RULE;
 import static org.onosproject.k8snetworking.api.Constants.SERVICE_FAKE_MAC_STR;
-// import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
+import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getPropertyValue;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.unshiftIpDomain;
 
@@ -251,20 +251,20 @@ public class K8sSwitchingArpHandler {
             replyMac = gwMacAddress;
         }
 
-        // if (replyMac == null) {
-        //     String cidr = k8sNetworkService.networks().stream()
-        //             .map(K8sNetwork::cidr).findAny().orElse(null);
+        if (replyMac == null) {
+            String cidr = k8sNetworkService.networks().stream()
+                    .map(K8sNetwork::cidr).findAny().orElse(null);
 
-        //     if (cidr != null) {
-        //         String unshiftedIp = unshiftIpDomain(targetIp.toString(),
-        //                 SHIFTED_IP_PREFIX, cidr);
+            if (cidr != null) {
+                String unshiftedIp = unshiftIpDomain(targetIp.toString(),
+                        SHIFTED_IP_PREFIX, cidr);
 
-        //         replyMac = k8sNetworkService.ports().stream()
-        //                 .filter(p -> p.ipAddress().equals(IpAddress.valueOf(unshiftedIp)))
-        //                 .map(K8sPort::macAddress)
-        //                 .findAny().orElse(null);
-        //     }
-        // }
+                replyMac = k8sNetworkService.ports().stream()
+                        .filter(p -> p.ipAddress().equals(IpAddress.valueOf(unshiftedIp)))
+                        .map(K8sPort::macAddress)
+                        .findAny().orElse(null);
+            }
+        }
 
         if (replyMac == null) {
             Set<String> serviceIps = k8sServiceService.services().stream()

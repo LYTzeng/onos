@@ -110,8 +110,8 @@ import static org.onosproject.k8snetworking.api.Constants.PRIORITY_NAT_RULE;
 import static org.onosproject.k8snetworking.api.Constants.ROUTING_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.SERVICE_FAKE_MAC_STR;
 import static org.onosproject.k8snetworking.api.Constants.SERVICE_TABLE;
-// import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_CIDR;
-// import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
+import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_CIDR;
+import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.SRC;
 import static org.onosproject.k8snetworking.api.Constants.STAT_EGRESS_TABLE;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getBclassIpPrefixFromCidr;
@@ -286,12 +286,12 @@ public class K8sServiceHandler {
         String fullSrcNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
 
         // src: POD -> dst: service (unNAT POD) grouping
-        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, serviceCidr, B_CLASS, null,
-        //         SHIFTED_IP_PREFIX, SRC, GROUPING_TABLE, SERVICE_TABLE,
-        //         PRIORITY_CT_RULE, install);
+        setSrcDstCidrRules(deviceId, fullSrcPodCidr, serviceCidr, B_CLASS, null,
+                SHIFTED_IP_PREFIX, SRC, GROUPING_TABLE, SERVICE_TABLE,
+                PRIORITY_CT_RULE, install);
         // src: POD (unNAT service) -> dst: shifted POD grouping
-        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, SHIFTED_IP_CIDR, B_CLASS, null,
-        //         srcPodPrefix, DST, GROUPING_TABLE, POD_TABLE, PRIORITY_CT_RULE, install);
+        setSrcDstCidrRules(deviceId, fullSrcPodCidr, SHIFTED_IP_CIDR, B_CLASS, null,
+                srcPodPrefix, DST, GROUPING_TABLE, POD_TABLE, PRIORITY_CT_RULE, install);
 
         // src: node -> dst: service (unNAT POD) grouping
         setSrcDstCidrRules(deviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,

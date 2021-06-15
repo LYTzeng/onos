@@ -93,7 +93,7 @@ import static org.onosproject.k8snetworking.api.Constants.NAMESPACE_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_CIDR_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_NAMESPACE_RULE;
 import static org.onosproject.k8snetworking.api.Constants.ROUTING_TABLE;
-// import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
+import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.namespaceHashByNamespace;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.namespaceHashByPodIp;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.namespaceHashByServiceIp;
@@ -268,9 +268,9 @@ public class K8sNetworkPolicyHandler {
 
 
                     // shifted IP
-                    // sBuilder.matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(
-                    //         shiftIpDomain(k, SHIFTED_IP_PREFIX)), HOST_PREFIX));
-                    // setPolicyRulesBase(sBuilder, tBuilder, ACL_TABLE, install);
+                    sBuilder.matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(
+                            shiftIpDomain(k, SHIFTED_IP_PREFIX)), HOST_PREFIX));
+                    setPolicyRulesBase(sBuilder, tBuilder, ACL_TABLE, install);
                 }
             });
         });
@@ -357,8 +357,8 @@ public class K8sNetworkPolicyHandler {
                 pods.stream()
                         .filter(pod -> pod.getStatus().getPodIP() != null)
                         .forEach(pod -> {
-                    // white.compute(shiftIpDomain(pod.getStatus().getPodIP(),
-                    //         SHIFTED_IP_PREFIX) + "/" + HOST_PREFIX, (m, n) -> direction);
+                    white.compute(shiftIpDomain(pod.getStatus().getPodIP(),
+                            SHIFTED_IP_PREFIX) + "/" + HOST_PREFIX, (m, n) -> direction);
                     white.compute(pod.getStatus().getPodIP() + "/" + HOST_PREFIX, (m, n) -> direction);
                 });
 
@@ -418,15 +418,15 @@ public class K8sNetworkPolicyHandler {
                 pods.stream()
                         .filter(pod -> pod.getStatus().getPodIP() != null)
                         .forEach(pod -> {
-                    // white.compute(shiftIpDomain(pod.getStatus().getPodIP(),
-                    //         SHIFTED_IP_PREFIX) + "/" + HOST_PREFIX, (m, n) -> {
-                    //     if (n != null) {
-                    //         n.put(DIRECTION_EGRESS, e.getPorts());
-                    //         return n;
-                    //     } else {
-                    //         return direction;
-                    //     }
-                    // });
+                    white.compute(shiftIpDomain(pod.getStatus().getPodIP(),
+                            SHIFTED_IP_PREFIX) + "/" + HOST_PREFIX, (m, n) -> {
+                        if (n != null) {
+                            n.put(DIRECTION_EGRESS, e.getPorts());
+                            return n;
+                        } else {
+                            return direction;
+                        }
+                    });
 
                     white.compute(pod.getStatus().getPodIP() + "/" + HOST_PREFIX,
                             (m, n) -> {
@@ -498,8 +498,8 @@ public class K8sNetworkPolicyHandler {
                         List<LabelSelectorRequirement> matchExps = peer.getPodSelector().getMatchExpressions();
 
                         if (podLabels == null && matchExps.size() == 0 && podIp != null) {
-                            // white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
-                            //         "/" + HOST_PREFIX, (m, n) -> direction);
+                            white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
+                                    "/" + HOST_PREFIX, (m, n) -> direction);
                             white.compute(podIp + "/" +
                                     HOST_PREFIX, (m, n) -> direction);
 
@@ -508,8 +508,8 @@ public class K8sNetworkPolicyHandler {
                             pod.getMetadata().getLabels().forEach((k, v) -> {
                                 if (podLabels != null && podLabels.get(k) != null &&
                                         podLabels.get(k).equals(v) && podIp != null) {
-                                    // white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
-                                    //         "/" + HOST_PREFIX, (m, n) -> direction);
+                                    white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
+                                            "/" + HOST_PREFIX, (m, n) -> direction);
                                     white.compute(podIp + "/" +
                                             HOST_PREFIX, (m, n) -> direction);
 
@@ -537,15 +537,15 @@ public class K8sNetworkPolicyHandler {
                         List<LabelSelectorRequirement> matchExps = peer.getPodSelector().getMatchExpressions();
 
                         if (podLabels == null && matchExps.size() == 0 && podIp != null) {
-                            // white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
-                            //         "/" + HOST_PREFIX, (m, n) -> {
-                            //     if (n != null) {
-                            //         n.put(DIRECTION_EGRESS, e.getPorts());
-                            //         return n;
-                            //     } else {
-                            //         return direction;
-                            //     }
-                            // });
+                            white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
+                                    "/" + HOST_PREFIX, (m, n) -> {
+                                if (n != null) {
+                                    n.put(DIRECTION_EGRESS, e.getPorts());
+                                    return n;
+                                } else {
+                                    return direction;
+                                }
+                            });
 
                             white.compute(podIp + "/" +
                                     HOST_PREFIX, (m, n) -> {
@@ -562,15 +562,15 @@ public class K8sNetworkPolicyHandler {
                             pod.getMetadata().getLabels().forEach((k, v) -> {
                                 if (podLabels != null && podLabels.get(k) != null &&
                                         podLabels.get(k).equals(v) && podIp != null) {
-                                    // white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
-                                    //         "/" + HOST_PREFIX, (m, n) -> {
-                                    //     if (n != null) {
-                                    //         n.put(DIRECTION_EGRESS, e.getPorts());
-                                    //         return n;
-                                    //     } else {
-                                    //         return direction;
-                                    //     }
-                                    // });
+                                    white.compute(shiftIpDomain(podIp, SHIFTED_IP_PREFIX) +
+                                            "/" + HOST_PREFIX, (m, n) -> {
+                                        if (n != null) {
+                                            n.put(DIRECTION_EGRESS, e.getPorts());
+                                            return n;
+                                        } else {
+                                            return direction;
+                                        }
+                                    });
 
                                     white.compute(podIp + "/" +
                                             HOST_PREFIX, (m, n) -> {
@@ -828,10 +828,10 @@ public class K8sNetworkPolicyHandler {
             TrafficSelector.Builder origBuilder = DefaultTrafficSelector.builder()
                     .matchEthType(TYPE_IPV4)
                     .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(ip), HOST_PREFIX));
-            // TrafficSelector.Builder convBuilder = DefaultTrafficSelector.builder()
-            //         .matchEthType(TYPE_IPV4)
-            //         .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(
-            //                 shiftIpDomain(ip, SHIFTED_IP_PREFIX)), HOST_PREFIX));
+            TrafficSelector.Builder convBuilder = DefaultTrafficSelector.builder()
+                    .matchEthType(TYPE_IPV4)
+                    .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(
+                            shiftIpDomain(ip, SHIFTED_IP_PREFIX)), HOST_PREFIX));
             TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder();
 
             if (install) {
@@ -849,15 +849,15 @@ public class K8sNetworkPolicyHandler {
                     install
             );
 
-            // k8sFlowRuleService.setRule(
-            //         appId,
-            //         n.intgBridge(),
-            //         convBuilder.build(),
-            //         tBuilder.build(),
-            //         PRIORITY_NAMESPACE_RULE,
-            //         NAMESPACE_TABLE,
-            //         install
-            // );
+            k8sFlowRuleService.setRule(
+                    appId,
+                    n.intgBridge(),
+                    convBuilder.build(),
+                    tBuilder.build(),
+                    PRIORITY_NAMESPACE_RULE,
+                    NAMESPACE_TABLE,
+                    install
+            );
         });
     }
 
