@@ -58,8 +58,10 @@ import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.onlab.util.Tools.groupedThreads;
 import static org.onosproject.k8snetworking.api.Constants.EXT_ENTRY_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.K8S_NETWORKING_APP_ID;
+import static org.onosproject.k8snetworking.api.Constants.NODE_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_POD_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_REPLY_RULE;
+import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getCclassIpPrefixFromCidr;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -141,6 +143,42 @@ public class K8sRoutingArpHandler {
                         K8sNode updated = n.updateExtGatewayMac(sha);
                         k8sNodeService.updateNode(updated);
                     });
+        }
+        else if (arp.getOpCode() == ARP.OP_REQUEST) {
+            IpAddress spa = Ip4Address.valueOf(arp.getSenderProtocolAddress());
+            MacAddress sha = MacAddress.valueOf(arp.getSenderHardwareAddress());
+            IpAddress tpa = Ip4Address.valueOf(arp.getTargetProtocolAddress());
+
+            if (tpa.toString().startsWith(NODE_IP_PREFIX)) {
+                log.info("Who has {} ? Tell Pod {}({})", tpa, spa, sha);
+                String targetIpPostfix = tpa.toString().split("\\.", 3)[2];
+                String senderPodCidr = getCclassIpPrefixFromCidr(spa.toString())  + ".0";
+
+                k8sNodeService.completeNodes().forEach(n -> {
+                    String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
+                    String podCidr = n.podCidr().split("\\/")[0];
+
+                    if (targetIpPostfix.equals(extGatewayIpPostfix) && senderPodCidr.equals(podCidr)) {
+                        MacAddress replyMac = n.extGatewayMac();
+
+                        Ethernet ethReply = ARP.buildArpReply(
+                            tpa.getIp4Address(),
+                            replyMac,
+                            ethernet);
+
+                        TrafficTreatment treatment = DefaultTrafficTreatment.builder()
+                        .setOutput(context.inPacket().receivedFrom().port())
+                        .build();
+
+                        packetService.emit(new DefaultOutboundPacket(
+                            context.inPacket().receivedFrom().deviceId(),
+                            treatment,
+                            ByteBuffer.wrap(ethReply.serialize())));
+
+                        log.info("{} is at {}", tpa, replyMac.toString());
+                    }
+                });
+            }
         }
     }
 

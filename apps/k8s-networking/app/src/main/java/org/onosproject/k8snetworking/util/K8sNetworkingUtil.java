@@ -346,6 +346,19 @@ public final class K8sNetworkingUtil {
     }
 
     /**
+     * Returns the C class IP prefix of the given CIDR.
+     *
+     * @param cidr  CIDR
+     * @return IP prefix
+     */
+    public static String getCclassIpPrefixFromCidr(String cidr) {
+        if (cidr == null) {
+            return null;
+        }
+        return cidr.split("\\.")[0] + "." + cidr.split("\\.")[1] + "." + cidr.split("\\.")[2];
+    }
+
+    /**
      * Returns the B class IP prefix of the given CIDR.
      *
      * @param cidr  CIDR
