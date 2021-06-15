@@ -152,7 +152,7 @@ public class K8sRoutingArpHandler {
             if (tpa.toString().startsWith(NODE_IP_PREFIX)) {
                 log.info("Who has {} ? Tell Pod {}({})", tpa, spa, sha);
                 String targetIpPostfix = tpa.toString().split("\\.", 3)[2];
-                String senderPodCidr = getCclassIpPrefixFromCidr(spa.toString());
+                String senderPodCidr = getCclassIpPrefixFromCidr(spa.toString())  + ".0";
 
                 k8sNodeService.completeNodes().forEach(n -> {
                     String extGatewayIpPostfix = n.extGatewayIp().toString().split("\\.", 3)[2];
