@@ -64,8 +64,8 @@ import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_REPLY_RUL
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_GATEWAY_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_LOCAL_BRIDGE_RULE;
 import static org.onosproject.k8snetworking.api.Constants.ROUTING_TABLE;
-import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
-import static org.onosproject.k8snetworking.api.Constants.SHIFTED_LOCAL_IP_PREFIX;
+// import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
+// import static org.onosproject.k8snetworking.api.Constants.SHIFTED_LOCAL_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.SRC;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.shiftIpDomain;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.tunnelPortNumByNetId;
@@ -219,15 +219,15 @@ public class K8sSwitchingGatewayHandler {
 
         ExtensionTreatment loadTreatment = null;
 
-        if (REQUEST.equals(type)) {
-            loadTreatment = buildLoadExtension(deviceService.getDevice(
-                    k8sNode.localBridge()), B_CLASS, SRC, SHIFTED_LOCAL_IP_PREFIX);
-        }
+        // if (REQUEST.equals(type)) {
+        //     loadTreatment = buildLoadExtension(deviceService.getDevice(
+        //             k8sNode.localBridge()), B_CLASS, SRC, SHIFTED_LOCAL_IP_PREFIX);
+        // }
 
-        if (REPLY.equals(type)) {
-            loadTreatment = buildLoadExtension(deviceService.getDevice(
-                    k8sNode.localBridge()), B_CLASS, DST, SHIFTED_IP_PREFIX);
-        }
+        // if (REPLY.equals(type)) {
+        //     loadTreatment = buildLoadExtension(deviceService.getDevice(
+        //             k8sNode.localBridge()), B_CLASS, DST, SHIFTED_IP_PREFIX);
+        // }
 
         tBuilder.extension(loadTreatment, k8sNode.localBridge());
 
@@ -253,45 +253,45 @@ public class K8sSwitchingGatewayHandler {
                 install);
     }
 
-    private void setLocalBridgeArpRules(K8sNetwork k8sNetwork, boolean install) {
-        for (K8sNode node : k8sNodeService.completeNodes()) {
-            if (node.hostname().equals(k8sNetwork.name())) {
-                setLocalBridgeArpRule(k8sNetwork, node, install);
-            }
-        }
-    }
+    // private void setLocalBridgeArpRules(K8sNetwork k8sNetwork, boolean install) {
+    //     for (K8sNode node : k8sNodeService.completeNodes()) {
+    //         if (node.hostname().equals(k8sNetwork.name())) {
+    //             setLocalBridgeArpRule(k8sNetwork, node, install);
+    //         }
+    //     }
+    // }
 
-    private void setLocalBridgeArpRule(K8sNetwork k8sNetwork, K8sNode k8sNode, boolean install) {
-        Device device = deviceService.getDevice(k8sNode.localBridge());
+    // private void setLocalBridgeArpRule(K8sNetwork k8sNetwork, K8sNode k8sNode, boolean install) {
+    //     Device device = deviceService.getDevice(k8sNode.localBridge());
 
-        String shiftedLocalIp = shiftIpDomain(
-                k8sNetwork.gatewayIp().toString(), SHIFTED_LOCAL_IP_PREFIX);
+    //     String shiftedLocalIp = shiftIpDomain(
+    //             k8sNetwork.gatewayIp().toString(), SHIFTED_LOCAL_IP_PREFIX);
 
-        TrafficSelector selector = DefaultTrafficSelector.builder()
-                .matchEthType(Ethernet.TYPE_ARP)
-                .matchArpOp(ARP.OP_REQUEST)
-                .matchArpTpa(Ip4Address.valueOf(shiftedLocalIp))
-                .build();
+    //     TrafficSelector selector = DefaultTrafficSelector.builder()
+    //             .matchEthType(Ethernet.TYPE_ARP)
+    //             .matchArpOp(ARP.OP_REQUEST)
+    //             .matchArpTpa(Ip4Address.valueOf(shiftedLocalIp))
+    //             .build();
 
-        TrafficTreatment treatment = DefaultTrafficTreatment.builder()
-                .setArpOp(ARP.OP_REPLY)
-                .extension(buildMoveEthSrcToDstExtension(device), device.id())
-                .extension(buildMoveArpShaToThaExtension(device), device.id())
-                .extension(buildMoveArpSpaToTpaExtension(device), device.id())
-                .setArpSpa(Ip4Address.valueOf(shiftedLocalIp))
-                .setArpSha(k8sNode.intgBridgeMac())
-                .setOutput(PortNumber.IN_PORT)
-                .build();
+    //     TrafficTreatment treatment = DefaultTrafficTreatment.builder()
+    //             .setArpOp(ARP.OP_REPLY)
+    //             .extension(buildMoveEthSrcToDstExtension(device), device.id())
+    //             .extension(buildMoveArpShaToThaExtension(device), device.id())
+    //             .extension(buildMoveArpSpaToTpaExtension(device), device.id())
+    //             .setArpSpa(Ip4Address.valueOf(shiftedLocalIp))
+    //             .setArpSha(k8sNode.intgBridgeMac())
+    //             .setOutput(PortNumber.IN_PORT)
+    //             .build();
 
-        k8sFlowRuleService.setRule(
-                appId,
-                device.id(),
-                selector,
-                treatment,
-                PRIORITY_ARP_REPLY_RULE,
-                LOCAL_ENTRY_TABLE,
-                install);
-    }
+    //     k8sFlowRuleService.setRule(
+    //             appId,
+    //             device.id(),
+    //             selector,
+    //             treatment,
+    //             PRIORITY_ARP_REPLY_RULE,
+    //             LOCAL_ENTRY_TABLE,
+    //             install);
+    // }
 
     private class InternalK8sNetworkListener implements K8sNetworkListener {
 
@@ -321,7 +321,7 @@ public class K8sSwitchingGatewayHandler {
 
             setGatewayRule(event.subject(), true);
             setLocalBridgeRules(event.subject(), true);
-            setLocalBridgeArpRules(event.subject(), true);
+            // setLocalBridgeArpRules(event.subject(), true);
         }
 
         private void processNetworkRemoval(K8sNetworkEvent event) {
@@ -331,7 +331,7 @@ public class K8sSwitchingGatewayHandler {
 
             setGatewayRule(event.subject(), false);
             setLocalBridgeRules(event.subject(), false);
-            setLocalBridgeArpRules(event.subject(), false);
+            // setLocalBridgeArpRules(event.subject(), false);
         }
     }
 
@@ -361,7 +361,7 @@ public class K8sSwitchingGatewayHandler {
 
             k8sNetworkService.networks().forEach(n -> setGatewayRule(n, true));
             k8sNetworkService.networks().forEach(n -> setLocalBridgeRules(n, true));
-            k8sNetworkService.networks().forEach(n -> setLocalBridgeArpRules(n, true));
+            // k8sNetworkService.networks().forEach(n -> setLocalBridgeArpRules(n, true));
         }
     }
 }

@@ -828,10 +828,10 @@ public class K8sNetworkPolicyHandler {
             TrafficSelector.Builder origBuilder = DefaultTrafficSelector.builder()
                     .matchEthType(TYPE_IPV4)
                     .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(ip), HOST_PREFIX));
-            TrafficSelector.Builder convBuilder = DefaultTrafficSelector.builder()
-                    .matchEthType(TYPE_IPV4)
-                    .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(
-                            shiftIpDomain(ip, SHIFTED_IP_PREFIX)), HOST_PREFIX));
+            // TrafficSelector.Builder convBuilder = DefaultTrafficSelector.builder()
+            //         .matchEthType(TYPE_IPV4)
+            //         .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(
+            //                 shiftIpDomain(ip, SHIFTED_IP_PREFIX)), HOST_PREFIX));
             TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder();
 
             if (install) {
@@ -849,15 +849,15 @@ public class K8sNetworkPolicyHandler {
                     install
             );
 
-            k8sFlowRuleService.setRule(
-                    appId,
-                    n.intgBridge(),
-                    convBuilder.build(),
-                    tBuilder.build(),
-                    PRIORITY_NAMESPACE_RULE,
-                    NAMESPACE_TABLE,
-                    install
-            );
+            // k8sFlowRuleService.setRule(
+            //         appId,
+            //         n.intgBridge(),
+            //         convBuilder.build(),
+            //         tBuilder.build(),
+            //         PRIORITY_NAMESPACE_RULE,
+            //         NAMESPACE_TABLE,
+            //         install
+            // );
         });
     }
 
