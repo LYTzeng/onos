@@ -64,6 +64,8 @@ public class DefaultK8sApiConfigHandler {
     private static final String EXT_BRIDGE_IP = "external.bridge.ip";
     private static final String EXT_GATEWAY_IP = "external.gateway.ip";
     private static final String EXT_INTF_NAME = "external.interface.name";
+    private static final String EXT_OVS_IP = "external.ovs.ip";
+    private static final String EXT_OVS_INTF_NAME = "external.ovs.interface.name";
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
@@ -165,6 +167,8 @@ public class DefaultK8sApiConfigHandler {
         String extIntf = annots.get(EXT_INTF_NAME);
         String extGatewayIpStr = annots.get(EXT_GATEWAY_IP);
         String extBridgeIpStr = annots.get(EXT_BRIDGE_IP);
+        String extOvsIntf = annots.get(EXT_OVS_INTF_NAME);
+        String extOvsIpStr = annots.get(EXT_OVS_IP);
 
         return DefaultK8sNode.builder()
                 .hostname(hostname)
@@ -176,6 +180,8 @@ public class DefaultK8sApiConfigHandler {
                 .extBridgeIp(IpAddress.valueOf(extBridgeIpStr))
                 .extGatewayIp(IpAddress.valueOf(extGatewayIpStr))
                 .podCidr(node.getSpec().getPodCIDR())
+                .extOvsIntf(extOvsIntf)
+                .extOvsIp(IpAddress.valueOf(extOvsIpStr))
                 .build();
     }
 

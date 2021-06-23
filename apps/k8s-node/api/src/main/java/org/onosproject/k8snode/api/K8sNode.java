@@ -90,6 +90,13 @@ public interface K8sNode {
     String extIntf();
 
     /**
+     * Returns the external OvS interface name.
+     *
+     * @return external interface name
+     */
+    String extOvsIntf();
+
+    /**
      * Returns new kubernetes node instance with given integration bridge.
      *
      * @param deviceId  integration bridge device ID
@@ -256,6 +263,20 @@ public interface K8sNode {
     MacAddress extGatewayMac();
 
     /**
+     * Returns the external OvS IP address.
+     *
+     * @return IP address; null if the IP address does not exist
+     */
+    IpAddress extOvsIp();
+
+    /**
+     * Returns the external OvS MAC address.
+     *
+     * @return MAC address; null if the MAC address does not exist
+     */
+    MacAddress extOvsMac();
+
+    /**
      * Builder of new node entity.
      */
     interface Builder {
@@ -316,6 +337,16 @@ public interface K8sNode {
         Builder extIntf(String intf);
 
         /**
+         * Returns kubernetes node builder with supplied external OvS interface.
+         * External OvS interface is the interface name of nodes which connect directly to 
+         * the external OvS
+         *
+         * @param intf interface connecte to the external OvS
+         * @return kubernetes node builder
+         */
+        Builder extOvsIntf(String intf);
+
+        /**
          * Returns kubernetes node builder with supplied management IP address.
          *
          * @param managementIp management IP address
@@ -362,6 +393,23 @@ public interface K8sNode {
          * @return kubernetes node builder
          */
         Builder extGatewayMac(MacAddress extGatewayMac);
+
+        /**
+         * Returns kubernetes node builder with supplied external OvS IP.
+         * The IP of external OvS will be obtained from K8S node annotation.
+         *
+         * @param extOvsIp external OvS IP
+         * @return kubernetes node builder
+         */
+        Builder extOvsIp(IpAddress extOvsIp);
+
+        /**
+         * Returns kubernetes node builder with supplied external gateway MAC.
+         *
+         * @param extOvsMac external OvS MAC address (namely the MAC address of kbr-int in the external OvS)
+         * @return kubernetes node builder
+         */
+        Builder extOvsMac(MacAddress extOvsMac);
 
         /**
          * Returns kubernetes node builder with supplied POD CIDR.
