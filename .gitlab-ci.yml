@@ -4,6 +4,6 @@ stages:
 build:
   stage: trigger-build
   script:
-    - "curl -XPOST -F token=${CI_JOB_TOKEN} -F ref=mod http://172.30.0.2/api/v4/projects/16/trigger/pipeline"
+    - "curl -XPOST -F token=${CI_JOB_TOKEN} -F ref=k8s http://172.30.0.2/api/v4/projects/16/trigger/pipeline"
   tags:
     - SONA
