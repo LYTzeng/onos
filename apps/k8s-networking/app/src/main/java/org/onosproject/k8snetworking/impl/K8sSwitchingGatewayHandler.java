@@ -360,7 +360,7 @@ public class K8sSwitchingGatewayHandler {
             }
 
             k8sNetworkService.networks().forEach(n -> setGatewayRule(n, true));
-            k8sNetworkService.networks().forEach(n -> setLocalBridgeRules(n, true));
+            // k8sNetworkService.networks().forEach(n -> setLocalBridgeRules(n, true));
             // k8sNetworkService.networks().forEach(n -> setLocalBridgeArpRules(n, true));
         }
     }

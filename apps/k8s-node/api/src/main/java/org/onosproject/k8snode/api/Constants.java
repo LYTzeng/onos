@@ -33,8 +33,11 @@ public final class Constants {
     public static final String VXLAN_TUNNEL = "vxlan";
     public static final String GRE_TUNNEL = "gre";
     public static final String GENEVE_TUNNEL = "geneve";
-
+    
     public static final String VXLAN = "vxlan";
     public static final String GRE = "gre";
     public static final String GENEVE = "geneve";
+    // Mod
+    public static final String MANAGEMENT_INTF_VLAN_10 = "kbr-int-mgmt";
+    public static final String VLAN_10 = 10;
 }

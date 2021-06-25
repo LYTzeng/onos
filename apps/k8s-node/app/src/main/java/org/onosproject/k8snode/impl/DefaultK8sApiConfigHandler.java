@@ -66,6 +66,7 @@ public class DefaultK8sApiConfigHandler {
     private static final String EXT_INTF_NAME = "external.interface.name";
     private static final String EXT_OVS_IP = "external.ovs.ip";
     private static final String EXT_OVS_INTF_NAME = "external.ovs.interface.name";
+    private static final String MGMT_INTF_IP = "management.interface.ip";
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
@@ -142,7 +143,7 @@ public class DefaultK8sApiConfigHandler {
             // we need to consider assigning managementIp and dataIp differently
             // FIXME: ExternalIp is not considered currently
             if (nodeAddress.getType().equals(INTERNAL_IP)) {
-                managementIp = IpAddress.valueOf(nodeAddress.getAddress());
+                // managementIp = IpAddress.valueOf(nodeAddress.getAddress());
                 dataIp = IpAddress.valueOf(nodeAddress.getAddress());
             }
         }
@@ -169,6 +170,8 @@ public class DefaultK8sApiConfigHandler {
         String extBridgeIpStr = annots.get(EXT_BRIDGE_IP);
         String extOvsIntf = annots.get(EXT_OVS_INTF_NAME);
         String extOvsIpStr = annots.get(EXT_OVS_IP);
+
+        managementIp = IpAddress.valueOf(annots.get(MGMT_INTF_IP));
 
         return DefaultK8sNode.builder()
                 .hostname(hostname)
