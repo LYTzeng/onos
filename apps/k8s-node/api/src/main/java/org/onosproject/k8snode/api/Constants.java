@@ -39,5 +39,5 @@ public final class Constants {
     public static final String GENEVE = "geneve";
     // Mod
     public static final String MANAGEMENT_INTF_VLAN_10 = "kbr-int-mgmt";
-    public static final String VLAN_10 = 10;
+    public static final String VLAN_10 = "10";
 }
