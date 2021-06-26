@@ -52,6 +52,7 @@ public class DefaultK8sNode implements K8sNode {
     private final DeviceId extBridge;
     private final DeviceId localBridge;
     private final IpAddress managementIp;
+    private final IpAddress controllerIp;
     private final IpAddress dataIp;
     private final K8sNodeState state;
     private final String extIntf;
@@ -77,6 +78,7 @@ public class DefaultK8sNode implements K8sNode {
      * @param localBridge       local bridge
      * @param extIntf           external interface
      * @param managementIp      management IP address
+     * @param controllerIp      management IP address
      * @param dataIp            data IP address
      * @param state             node state
      * @param extBridgeIp       external bridge IP address
@@ -91,6 +93,7 @@ public class DefaultK8sNode implements K8sNode {
     protected DefaultK8sNode(String hostname, Type type, DeviceId intgBridge,
                              DeviceId extBridge, DeviceId localBridge,
                              String extIntf, IpAddress managementIp,
+                             IpAddress controllerIp,
                              IpAddress dataIp, K8sNodeState state,
                              IpAddress extBridgeIp, IpAddress extGatewayIp,
                              MacAddress extGatewayMac, String podCidr,
@@ -103,6 +106,7 @@ public class DefaultK8sNode implements K8sNode {
         this.localBridge = localBridge;
         this.extIntf = extIntf;
         this.managementIp = managementIp;
+        this.controllerIp = controllerIp;
         this.dataIp = dataIp;
         this.state = state;
         this.extBridgeIp = extBridgeIp;
@@ -164,6 +168,7 @@ public class DefaultK8sNode implements K8sNode {
                 .localBridge(localBridge)
                 .extIntf(extIntf)
                 .managementIp(managementIp)
+                .controllerIp(controllerIp)
                 .dataIp(dataIp)
                 .state(state)
                 .extBridgeIp(extBridgeIp)
@@ -186,6 +191,7 @@ public class DefaultK8sNode implements K8sNode {
                 .localBridge(localBridge)
                 .extIntf(extIntf)
                 .managementIp(managementIp)
+                .controllerIp(controllerIp)
                 .dataIp(dataIp)
                 .state(state)
                 .extBridgeIp(extBridgeIp)
@@ -208,6 +214,7 @@ public class DefaultK8sNode implements K8sNode {
                 .localBridge(deviceId)
                 .extIntf(extIntf)
                 .managementIp(managementIp)
+                .controllerIp(controllerIp)
                 .dataIp(dataIp)
                 .state(state)
                 .extBridgeIp(extBridgeIp)
@@ -223,6 +230,11 @@ public class DefaultK8sNode implements K8sNode {
     @Override
     public IpAddress managementIp() {
         return managementIp;
+    }
+
+    @Override
+    public IpAddress controllerIp() {
+        return controllerIp;
     }
 
     @Override
@@ -250,6 +262,7 @@ public class DefaultK8sNode implements K8sNode {
                 .localBridge(localBridge)
                 .extIntf(extIntf)
                 .managementIp(managementIp)
+                .controllerIp(controllerIp)
                 .dataIp(dataIp)
                 .state(newState)
                 .extBridgeIp(extBridgeIp)
@@ -272,6 +285,7 @@ public class DefaultK8sNode implements K8sNode {
                 .localBridge(localBridge)
                 .extIntf(extIntf)
                 .managementIp(managementIp)
+                .controllerIp(controllerIp)
                 .dataIp(dataIp)
                 .state(state)
                 .extBridgeIp(extBridgeIp)
@@ -384,6 +398,7 @@ public class DefaultK8sNode implements K8sNode {
                     localBridge.equals(that.localBridge) &&
                     extIntf.equals(that.extIntf) &&
                     managementIp.equals(that.managementIp) &&
+                    controllerIp.equals(that.controllerIp) &&
                     dataIp.equals(that.dataIp) &&
                     extBridgeIp.equals(that.extBridgeIp) &&
                     extGatewayIp.equals(that.extGatewayIp) &&
@@ -414,6 +429,7 @@ public class DefaultK8sNode implements K8sNode {
                 .add("localBridge", localBridge)
                 .add("extIntf", extIntf)
                 .add("managementIp", managementIp)
+                .add("controllerIp", controllerIp)
                 .add("dataIp", dataIp)
                 .add("state", state)
                 .add("extBridgeIp", extBridgeIp)
@@ -477,6 +493,7 @@ public class DefaultK8sNode implements K8sNode {
                 .localBridge(node.localBridge())
                 .extIntf(node.extIntf())
                 .managementIp(node.managementIp())
+                .controllerIp(node.controllerIp())
                 .dataIp(node.dataIp())
                 .state(node.state())
                 .extBridgeIp(node.extBridgeIp())
@@ -496,6 +513,7 @@ public class DefaultK8sNode implements K8sNode {
         private DeviceId extBridge;
         private DeviceId localBridge;
         private IpAddress managementIp;
+        private IpAddress controllerIp;
         private IpAddress dataIp;
         private K8sNodeState state;
         private K8sApiConfig apiConfig;
@@ -527,6 +545,7 @@ public class DefaultK8sNode implements K8sNode {
                     localBridge,
                     extIntf,
                     managementIp,
+                    controllerIp,
                     dataIp,
                     state,
                     extBridgeIp,
@@ -583,6 +602,12 @@ public class DefaultK8sNode implements K8sNode {
         @Override
         public Builder managementIp(IpAddress managementIp) {
             this.managementIp = managementIp;
+            return this;
+        }
+
+        @Override
+        public Builder controllerIp(IpAddress controllerIp) {
+            this.controllerIp = controllerIp;
             return this;
         }
 

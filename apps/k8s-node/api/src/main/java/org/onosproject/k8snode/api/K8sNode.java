@@ -128,6 +128,13 @@ public interface K8sNode {
     IpAddress managementIp();
 
     /**
+     * Returns the ONOS controller IP address in master node.
+     *
+     * @return ip address
+     */
+    IpAddress controllerIp();
+
+    /**
      * Returns the data network IP address used for tunneling.
      *
      * @return ip address; null if vxlan mode is not enabled
@@ -353,6 +360,14 @@ public interface K8sNode {
          * @return kubernetes node builder
          */
         Builder managementIp(IpAddress managementIp);
+
+        /**
+         * Returns kubernetes node builder with supplied ONOS IP address.
+         *
+         * @param controllerIp ONOS IP address
+         * @return kubernetes node builder
+         */
+        Builder controllerIp(IpAddress controllerIp);
 
         /**
          * Returns kubernetes node builder with supplied data IP address.

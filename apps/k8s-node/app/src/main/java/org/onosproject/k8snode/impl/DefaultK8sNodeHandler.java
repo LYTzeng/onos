@@ -304,7 +304,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         Device device = deviceService.getDevice(k8sNode.ovsdb());
 
         List<ControllerInfo> controllers = clusterService.getNodes().stream()
-                .map(n -> new ControllerInfo(k8sNode.managementIp(), DEFAULT_OFPORT, DEFAULT_OF_PROTO))
+                .map(n -> new ControllerInfo(k8sNode.controllerIp(), DEFAULT_OFPORT, DEFAULT_OF_PROTO))
                 .collect(Collectors.toList());
 
         String dpid = devId.toString().substring(DPID_BEGIN);

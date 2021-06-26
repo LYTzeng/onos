@@ -171,8 +171,9 @@ public class DefaultK8sApiConfigHandler {
         String extBridgeIpStr = annots.get(EXT_BRIDGE_IP);
         String extOvsIntf = annots.get(EXT_OVS_INTF_NAME);
         String extOvsIpStr = annots.get(EXT_OVS_IP);
+        String controllerIp = annots.get(ONOS_IP);
 
-        managementIp = IpAddress.valueOf(annots.get(ONOS_IP));
+        managementIp = IpAddress.valueOf(annots.get(MGMT_INTF_IP));
 
         return DefaultK8sNode.builder()
                 .hostname(hostname)
