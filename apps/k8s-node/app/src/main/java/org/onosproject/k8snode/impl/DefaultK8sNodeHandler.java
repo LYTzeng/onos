@@ -303,11 +303,9 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
     private void createBridge(K8sNode k8sNode, String bridgeName, DeviceId devId) {
         Device device = deviceService.getDevice(k8sNode.ovsdb());
 
-        // List<ControllerInfo> controllers = clusterService.getNodes().stream()
-        //         .map(n -> new ControllerInfo(n.ip(), DEFAULT_OFPORT, DEFAULT_OF_PROTO))
-        //         .collect(Collectors.toList());
-        List<ControllerInfo> controllers = new ArrayList<ControllerInfo>();
-        Collections.addAll(controllers, new ControllerInfo(k8sNode.managementIp(), DEFAULT_OFPORT, DEFAULT_OF_PROTO));
+        List<ControllerInfo> controllers = clusterService.getNodes().stream()
+                .map(n -> new ControllerInfo(k8sNode.managementIp(), DEFAULT_OFPORT, DEFAULT_OF_PROTO))
+                .collect(Collectors.toList());
 
         String dpid = devId.toString().substring(DPID_BEGIN);
 
