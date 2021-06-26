@@ -67,6 +67,7 @@ public class DefaultK8sApiConfigHandler {
     private static final String EXT_OVS_IP = "external.ovs.ip";
     private static final String EXT_OVS_INTF_NAME = "external.ovs.interface.name";
     private static final String MGMT_INTF_IP = "management.interface.ip";
+    private static final String ONOS_IP = "controller.ip";
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
@@ -171,7 +172,7 @@ public class DefaultK8sApiConfigHandler {
         String extOvsIntf = annots.get(EXT_OVS_INTF_NAME);
         String extOvsIpStr = annots.get(EXT_OVS_IP);
 
-        managementIp = IpAddress.valueOf(annots.get(MGMT_INTF_IP));
+        managementIp = IpAddress.valueOf(annots.get(ONOS_IP));
 
         return DefaultK8sNode.builder()
                 .hostname(hostname)
