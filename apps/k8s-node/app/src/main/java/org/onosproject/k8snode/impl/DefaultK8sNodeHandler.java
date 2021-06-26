@@ -306,7 +306,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         //         .map(n -> new ControllerInfo(n.ip(), DEFAULT_OFPORT, DEFAULT_OF_PROTO))
         //         .collect(Collectors.toList());
         List<ControllerInfo> controllers = new ArrayList<ControllerInfo>();
-        Collections.addAll(controllers, new ControllerInfo(k8sNode.managementIp(), DEFAULT_OFPORT, DEFAULT_OF_PROTO))
+        Collections.addAll(controllers, new ControllerInfo(k8sNode.managementIp(), DEFAULT_OFPORT, DEFAULT_OF_PROTO));
 
         String dpid = devId.toString().substring(DPID_BEGIN);
 
