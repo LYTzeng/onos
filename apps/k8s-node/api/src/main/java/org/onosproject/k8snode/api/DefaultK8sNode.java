@@ -78,7 +78,6 @@ public class DefaultK8sNode implements K8sNode {
      * @param localBridge       local bridge
      * @param extIntf           external interface
      * @param managementIp      management IP address
-     * @param controllerIp      management IP address
      * @param dataIp            data IP address
      * @param state             node state
      * @param extBridgeIp       external bridge IP address
@@ -86,6 +85,8 @@ public class DefaultK8sNode implements K8sNode {
      * @param extGatewayMac     external gateway MAC address
      * @param podCidr           POD CIDR
      * 
+     * [Mod]
+     * @param controllerIp      management IP address
      * @param extOvsIntf        external OvS interface
      * @param extOvsIp          external OvS IP addr
      * @param extOvsMac          external OvS MAC addr
@@ -513,7 +514,6 @@ public class DefaultK8sNode implements K8sNode {
         private DeviceId extBridge;
         private DeviceId localBridge;
         private IpAddress managementIp;
-        private IpAddress controllerIp;
         private IpAddress dataIp;
         private K8sNodeState state;
         private K8sApiConfig apiConfig;
@@ -523,6 +523,7 @@ public class DefaultK8sNode implements K8sNode {
         private MacAddress extGatewayMac;
         private String podCidr;
         // Mods
+        private IpAddress controllerIp;
         private String extOvsIntf;
         private IpAddress extOvsIp;
         private MacAddress extOvsMac;

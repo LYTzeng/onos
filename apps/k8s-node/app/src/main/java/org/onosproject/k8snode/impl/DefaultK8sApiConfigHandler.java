@@ -178,6 +178,7 @@ public class DefaultK8sApiConfigHandler {
         return DefaultK8sNode.builder()
                 .hostname(hostname)
                 .managementIp(managementIp)
+                .controllerIp(controllerIp)
                 .dataIp(dataIp)
                 .extIntf(extIntf)
                 .type(nodeType)
