@@ -265,7 +265,7 @@ public interface K8sNode {
      *
      * @return MAC address; null if the MAC address does not exist
      */
-    PortNumber k8sMgmtVlanMac();
+    MacAddress k8sMgmtVlanMac();
 
     /**
      * Returns the integration bridge's MAC address.
