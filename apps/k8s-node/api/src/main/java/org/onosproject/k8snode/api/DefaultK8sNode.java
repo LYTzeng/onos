@@ -37,6 +37,7 @@ import static org.onosproject.k8snode.api.Constants.INTEGRATION_TO_LOCAL_BRIDGE;
 import static org.onosproject.k8snode.api.Constants.LOCAL_TO_INTEGRATION_BRIDGE;
 import static org.onosproject.k8snode.api.Constants.PHYSICAL_EXTERNAL_BRIDGE;
 import static org.onosproject.k8snode.api.Constants.VXLAN_TUNNEL;
+import static org.onosproject.k8snode.api.Constants.K8S_MGMT_VLAN_INTF;
 import static org.onosproject.net.AnnotationKeys.PORT_NAME;
 
 /**
@@ -157,6 +158,11 @@ public class DefaultK8sNode implements K8sNode {
     @Override
     public String extOvsIntf() {
         return extOvsIntf;
+    }
+
+    @Override
+    public String k8sMgmtVlanIntf() {
+        return K8S_MGMT_VLAN_INTF;
     }
 
     @Override
@@ -346,6 +352,34 @@ public class DefaultK8sNode implements K8sNode {
         }
 
         return portNumber(extBridge, this.extIntf);
+    }
+
+    @Override
+    public PortNumber extOvsPortNum() {
+        if (this.extOvsIntf == null) {
+            return null;
+        }
+
+        return portNumber(intgBridge, this.extOvsIntf);
+    }
+
+    @Override
+    public PortNumber k8sMgmtVlanPortNum() {
+        return portNumber(intgBridge, K8S_MGMT_VLAN_INTF);
+    }
+
+    /**
+     * Used in Ext Ovs node to get PortNumber by port name
+     * @param portName
+     * @return
+     */
+    public PortNumber customIntgPortNum(String portName) {
+        return portNumber(intgBridge, portName);
+    }
+
+    @Override
+    public MacAddress k8sMgmtVlanMac() {
+        return macAddress(intgBridge, K8S_MGMT_VLAN_INTF);
     }
 
     @Override

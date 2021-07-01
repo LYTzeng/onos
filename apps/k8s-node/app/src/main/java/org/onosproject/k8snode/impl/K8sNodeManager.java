@@ -52,11 +52,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.onlab.util.Tools.groupedThreads;
+import static org.onosproject.k8snode.api.K8sNode.Type.EXTOVS;
 import static org.onosproject.k8snode.api.K8sNodeState.COMPLETE;
 import static org.onosproject.k8snode.util.K8sNodeUtil.genDpid;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -258,8 +260,47 @@ public class K8sNodeManager
     }
 
     @Override
+    public void createExtOvsNode(K8sNode node) {
+        checkNotNull(node, ERR_NULL_NODE);
+
+        K8sNode intNode;
+        K8sNode extNode;
+
+        if (node.intgBridge() == null) {
+            String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
+            checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
+            intNode = node.updateIntgBridge(DeviceId.deviceId(deviceIdStr));
+            checkArgument(!hasIntgBridge(intNode.intgBridge(), intNode.hostname()),
+                    NOT_DUPLICATED_MSG, intNode.intgBridge());
+        } else {
+            intNode = node;
+            checkArgument(!hasIntgBridge(intNode.intgBridge(), intNode.hostname()),
+                    NOT_DUPLICATED_MSG, intNode.intgBridge());
+        }
+
+        if (intNode.extBridge() == null) {
+            String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
+            checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
+            extNode = intNode.updateExtBridge(DeviceId.deviceId(deviceIdStr));
+            checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+                    NOT_DUPLICATED_MSG, extNode.extBridge());
+        } else {
+            extNode = intNode;
+            checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+                    NOT_DUPLICATED_MSG, extNode.extBridge());
+        }
+
+        nodeStore.createNode(extNode);
+        log.info(String.format(MSG_NODE, extNode.hostname(), MSG_CREATED));
+    }
+
+    @Override
     public Set<K8sNode> nodes() {
-        return nodeStore.nodes();
+        Predicate<K8sNode> isNotExtovsType = node -> node.type() != EXTOVS;
+        Set<K8sNode> nodes = nodeStore.nodes().stream()
+            .filter(isNotExtovsType)
+            .collect(Collectors.toSet());
+        return ImmutableSet.copyOf(nodes);
     }
 
     @Override
@@ -272,8 +313,10 @@ public class K8sNodeManager
 
     @Override
     public Set<K8sNode> completeNodes() {
+        Predicate<K8sNode> isNodeComplete = node -> node.state() == COMPLETE;
+        Predicate<K8sNode> isNotExtovsType = node -> node.type() != EXTOVS;
         Set<K8sNode> nodes = nodeStore.nodes().stream()
-                .filter(node -> node.state() == COMPLETE)
+                .filter(isNodeComplete.and(isNotExtovsType))
                 .collect(Collectors.toSet());
         return ImmutableSet.copyOf(nodes);
     }

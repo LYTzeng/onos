@@ -37,7 +37,12 @@ public interface K8sNode {
         /**
          * Signifies that this is a kubernetes minion node.
          */
-        MINION
+        MINION,
+
+        /**
+         * Signifies that this is a external ovs node (not in the k8s cluster)
+         */
+        EXTOVS
     }
 
     /**
@@ -95,6 +100,13 @@ public interface K8sNode {
      * @return external interface name
      */
     String extOvsIntf();
+
+    /**
+     * Returns the K8S mgmt vlan interface name (kbr-int-mgmt).
+     *
+     * @return external interface name
+     */
+    String k8sMgmtVlanIntf();
 
     /**
      * Returns new kubernetes node instance with given integration bridge.
@@ -233,6 +245,27 @@ public interface K8sNode {
      * @return port number, null if the port does not exist
      */
     PortNumber extBridgePortNum();
+
+    /**
+     * Returns the port number of the interface which connected to external OvS
+     *
+     * @return port number, null if the port does not exist
+     */
+    PortNumber extOvsPortNum();
+
+    /**
+     * Returns the port number of kbr-int-mgmt on this node
+     *
+     * @return port number, null if the port does not exist
+     */
+    PortNumber k8sMgmtVlanPortNum();
+
+    /**
+     * Returns the MAC address. of kbr-int-mgmt on this node
+     *
+     * @return MAC address; null if the MAC address does not exist
+     */
+    PortNumber k8sMgmtVlanMac();
 
     /**
      * Returns the integration bridge's MAC address.
@@ -411,7 +444,8 @@ public interface K8sNode {
 
         /**
          * Returns kubernetes node builder with supplied external OvS IP.
-         * The IP of external OvS will be obtained from K8S node annotation.
+         * The IP of external OvS (the IP addr of the kbr-int br in "external OvS") 
+         * will be obtained from K8S node annotation.
          *
          * @param extOvsIp external OvS IP
          * @return kubernetes node builder

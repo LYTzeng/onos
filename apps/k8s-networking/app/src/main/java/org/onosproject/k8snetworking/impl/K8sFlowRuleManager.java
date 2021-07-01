@@ -74,6 +74,9 @@ import static org.onosproject.k8snetworking.api.Constants.STAT_INGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.VTAG_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.VTAP_EGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.VTAP_INGRESS_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_INGRESS_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_PORT_CLASSIFY_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_ARP_TABLE;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.tunnelPortNumByNetId;
 import static org.onosproject.k8snetworking.util.RulePopulatorUtil.buildExtension;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -130,6 +133,8 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
         localNodeId = clusterService.getLocalNode().id();
         leadershipService.runForLeadership(appId.name());
         k8sNodeService.completeNodes().forEach(this::initializePipeline);
+        // Initialize exernal ovs node to connect flow tables
+        k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(this::initializeExtOvsPipeline);
 
         log.info("Started");
     }
@@ -263,6 +268,16 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
         connectTables(deviceId, VTAP_EGRESS_TABLE, FORWARDING_TABLE);
     }
 
+    protected void initializeExtOvsPipeline(K8sNode node) {
+        DeviceId deviceId = k8sNode.intgBridge();
+
+        // table 0 -> 30
+        connectTables(deviceId, INTG_INGRESS_TABLE, INTG_PORT_CLASSIFY_TABLE);
+
+        //table 30 -> 35
+        connectTables(deviceId, INTG_PORT_CLASSIFY_TABLE, INTG_ARP_TABLE);
+    }
+
     private void setupJumpTable(K8sNode k8sNode) {
         DeviceId deviceId = k8sNode.intgBridge();
 
@@ -356,9 +371,14 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
 
         @Override
         public void event(K8sNodeEvent event) {
+            K8sNode k8sNode = event.subject();
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    deviceEventExecutor.execute(() -> processNodeCompletion(event.subject()));
+                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                        deviceEventExecutor.execute(() -> processExtOvsNodeCompletion(k8sNode));
+                    } else {
+                        deviceEventExecutor.execute(() -> processNodeCompletion(k8sNode));
+                    }
                     break;
                 case K8S_NODE_CREATED:
                 default:
@@ -377,6 +397,16 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
             initializePipeline(node);
 
             k8sNetworkService.networks().forEach(K8sFlowRuleManager.this::setupHostRoutingRule);
+        }
+
+        private void processExtOvsNodeCompletion(K8sNode node) {
+            log.info("COMPLETE node {} is detected", node.hostname());
+
+            if (!isRelevantHelper()) {
+                return;
+            }
+
+            initializeExtOvsPipeline(node);
         }
     }
 

@@ -43,6 +43,7 @@ import org.onosproject.k8snetworking.api.K8sNetwork;
 import org.onosproject.k8snetworking.api.K8sNetworkService;
 import org.onosproject.k8snetworking.api.K8sPort;
 import org.onosproject.k8snetworking.api.K8sServiceService;
+import org.onosproject.k8snetworking.util.K8sNetworkingUtil;
 import org.onosproject.k8snode.api.K8sNode;
 import org.onosproject.k8snode.api.K8sNodeEvent;
 import org.onosproject.k8snode.api.K8sNodeListener;
@@ -86,6 +87,8 @@ import static org.onosproject.k8snetworking.api.Constants.NODE_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_ARP_CONTROL_RULE;
 import static org.onosproject.k8snetworking.api.Constants.SERVICE_FAKE_MAC_STR;
 import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
+import static org.onosproject.k8snetworking.api.Constants.EXT_OVS_KBR_INT_MGMT_MAC_STR; // [mod]
+import static org.onosproject.k8snetworking.api.Constants.INTG_ARP_TABLE; // [mod]
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getPropertyValue;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.unshiftIpDomain;
 
@@ -236,6 +239,7 @@ public class K8sSwitchingArpHandler {
         }
 
         IpAddress targetIp = Ip4Address.valueOf(arpPacket.getTargetProtocolAddress());
+        IpAddress senderIp = Ip4Address.valueOf(arpPacket.getSenderProtocolAddress());
 
         MacAddress replyMac = k8sNetworkService.ports().stream()
                 //        .filter(p -> p.networkId().equals(srcPort.networkId()))
@@ -249,6 +253,23 @@ public class K8sSwitchingArpHandler {
 
         if (gwIpCnt > 0) {
             replyMac = gwMacAddress;
+        }
+
+        // Handeling ARP Req from k8s node to external OvS node if target Ip == dataIp (172.16.x.x)
+        if (replyMac == null) {
+            Stream<K8sNode> dataIpStream = k8sNodeService.completeNodes().stream()
+                .filter(n -> n.dataIp().equals(targetIp));
+
+            k8sNodeService.completeNodes().forEach(n -> {
+                String targetIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
+                String dataIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(n.dataIp().toString());
+                if (dataIpStream.count() > 0 &&
+                    context.inPacket().receivedFrom().port().equals(n.k8sMgmtVlanIntf()) &&
+                    targetIpPrefix.equals(dataIpPrefix)) {
+                    // Set replyMac to the MAC addr of management interface (namely kbr-int-mgmt)
+                    replyMac = MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR);
+                }
+            });
         }
 
         if (replyMac == null) {
@@ -433,7 +454,11 @@ public class K8sSwitchingArpHandler {
             K8sNode k8sNode = event.subject();
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    eventExecutor.execute(() -> processNodeCompletion(k8sNode));
+                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                        eventExecutor.execute(() -> processExtOvsNodeCompletion(k8sNode));
+                    } else {
+                        eventExecutor.execute(() -> processNodeCompletion(k8sNode));
+                    }
                     break;
                 case K8S_NODE_INCOMPLETE:
                     eventExecutor.execute(() -> processNodeIncompletion(k8sNode));
@@ -449,6 +474,14 @@ public class K8sSwitchingArpHandler {
             }
 
             setDefaultArpRule(node, true);
+        }
+
+        private void processExtOvsNodeCompletion(K8sNode node) {
+            if (!isRelevantHelper()) {
+                return;
+            }
+
+            setDefaultExtOvsArpRule(node, true);
         }
 
         private void processNodeIncompletion(K8sNode node) {
@@ -496,6 +529,46 @@ public class K8sSwitchingArpHandler {
                     treatment,
                     PRIORITY_ARP_CONTROL_RULE,
                     ARP_TABLE,
+                    install
+            );
+        }
+
+        private void setDefaultExtOvsArpRule(K8sNode node, boolean install) {
+
+            if (getArpMode() == null) {
+                return;
+            }
+
+            switch (getArpMode()) {
+                case ARP_PROXY_MODE:
+                    setDefaultExtOvsArpRuleForProxyMode(node, install);
+                    break;
+                case ARP_BROADCAST_MODE:
+                    log.warn("Not implemented yet.");
+                    break;
+                default:
+                    log.warn("Invalid ARP mode {}. Please use either " +
+                            "broadcast or proxy mode.", getArpMode());
+                    break;
+            }
+        }
+
+        private void setDefaultExtOvsArpRuleForProxyMode(K8sNode node, boolean install) {
+            TrafficSelector selector = DefaultTrafficSelector.builder()
+                    .matchEthType(EthType.EtherType.ARP.ethType().toShort())
+                    .build();
+
+            TrafficTreatment treatment = DefaultTrafficTreatment.builder()
+                    .punt()
+                    .build();
+
+            k8sFlowRuleService.setRule(
+                    appId,
+                    node.intgBridge(),
+                    selector,
+                    treatment,
+                    PRIORITY_ARP_CONTROL_RULE,
+                    INTG_ARP_TABLE,
                     install
             );
         }

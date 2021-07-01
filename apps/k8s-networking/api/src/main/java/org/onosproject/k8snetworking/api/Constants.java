@@ -40,6 +40,8 @@ public final class Constants {
     public static final String CONTROLLER_MAC_STR = "fe:00:00:00:00:10";
     public static final String SERVICE_FAKE_MAC_STR = "fe:00:00:00:00:20";
 
+    public static final String EXT_OVS_KBR_INT_MGMT_MAC_STR = "d8:d3:85:f6:a5:e8"; // [mod] This MAC address depends on the external OvS kbr-int-mgmt
+
     public static final MacAddress DEFAULT_GATEWAY_MAC =
                         MacAddress.valueOf(DEFAULT_GATEWAY_MAC_STR);
 
@@ -96,6 +98,8 @@ public final class Constants {
     public static final int PRIORITY_NODE_PORT_REMOTE_RULE = 41500;
     public static final int PRIORITY_NODE_PORT_INTER_RULE = 40000;
 
+    public static final int PRIORITY_MGMT_VLAN_RULE = 50000; // [mod]
+
     // flow table index
     public static final int STAT_INGRESS_TABLE = 0;
     public static final int VTAP_INGRESS_TABLE = 1;
@@ -124,6 +128,11 @@ public final class Constants {
     public static final int POD_RESOLUTION_TABLE = 11;
 
     public static final int LOCAL_ENTRY_TABLE = 0;
+
+    // Flow table index for External OvS
+    public static final int INTG_INGRESS_TABLE = 0;
+    public static final int INTG_PORT_CLASSIFY_TABLE = 30;
+    public static final int INTG_ARP_TABLE = 35;
 
     // CLI item length
     public static final int CLI_ID_LENGTH = 30;

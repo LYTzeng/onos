@@ -75,4 +75,13 @@ public interface K8sNodeHandler {
      * @param k8sNode kubernetes node
      */
     void processPostOnBoardState(K8sNode k8sNode);
+
+    /**
+     * Processes the given external OvS node for ext-ovs-created state.
+     * After its bridges are created,
+     * it will mark the node state as ext-ovs-created.
+     *
+     * @param k8sNode kubernetes node
+     */
+    void processExtOvsCreatedState(K8sNode k8sNode);
 }

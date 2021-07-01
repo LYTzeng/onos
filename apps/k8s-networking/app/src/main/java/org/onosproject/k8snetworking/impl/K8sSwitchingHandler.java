@@ -23,6 +23,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.onlab.packet.Ethernet;
 import org.onlab.packet.IpPrefix;
+import org.onlab.packet.MacAddress;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.cfg.ConfigProperty;
 import org.onosproject.cluster.ClusterService;
@@ -50,9 +51,12 @@ import org.onosproject.net.flow.TrafficSelector;
 import org.onosproject.net.flow.TrafficTreatment;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.HashMap;
 
 import static java.util.concurrent.Executors.newSingleThreadExecutor;
 import static org.onlab.util.Tools.groupedThreads;
@@ -64,6 +68,12 @@ import static org.onosproject.k8snetworking.api.Constants.K8S_NETWORKING_APP_ID;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_SWITCHING_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_TUNNEL_TAG_RULE;
 import static org.onosproject.k8snetworking.api.Constants.VTAG_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.PRIORITY_MGMT_VLAN_RULE;
+import static org.onosproject.k8snetworking.api.Constants.STAT_INGRESS_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_INGRESS_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_PORT_CLASSIFY_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_ARP_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.EXT_OVS_KBR_INT_MGMT_MAC_STR; // [mod]
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getPropertyValue;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.tunnelPortNumByNetId;
 import static org.onosproject.k8snetworking.util.RulePopulatorUtil.buildExtension;
@@ -132,6 +142,7 @@ public class K8sSwitchingHandler {
         leadershipService.runForLeadership(appId.name());
 
         setGatewayRulesForTunnel(true);
+        setK8sMgmtVlanRules(true);
 
         log.info("Started");
     }
@@ -144,6 +155,7 @@ public class K8sSwitchingHandler {
         eventExecutor.shutdown();
 
         setGatewayRulesForTunnel(false);
+        setK8sMgmtVlanRules(false);
 
         log.info("Stopped");
     }
@@ -333,9 +345,99 @@ public class K8sSwitchingHandler {
         });
     }
 
-    /**
-     * Obtains the VNI from the given kubernetes port.
-     *
+    private void setK8sMgmtVlanRules(boolean install) {
+        // Flow rules on k8s nodes
+        k8sNodeService.completeNodes().forEach(k8sNode -> {
+            // local k8s node (k8s data ip) -> ext ovs
+            TrafficSelector outboundCpFlowSelector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(IpPrefix.valueOf(k8sNode.dataIp(), 24))
+                .matchInPort(k8sNode.k8sMgmtVlanPortNum())
+                .build();
+
+            TrafficTreatment outboundCpFlowTreatment = DefaultTrafficTreatment.builder()
+                // .setEthDst(MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR))
+                .setOutput(k8sNode.extOvsPortNum())
+                .build();
+
+            k8sFlowRuleService.setRule(
+                appId,
+                k8sNode.intgBridge(),
+                outbountCpFlowSelector,
+                outbountCpFlowTreatment,
+                PRIORITY_MGMT_VLAN_RULE,
+                INTG_INGRESS_TABLE,
+                install);
+
+            // ext ovs (from other k8s nodes) -> local k8s node
+            TrafficSelector inboundCpFlowSelector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(IpPrefix.valueOf(k8sNode.dataIp(), 32))
+                .matchInPort(k8sNode.extOvsPortNum())
+                .build();
+
+            TrafficTreatment inboundCpFlowTreatment = DefaultTrafficTreatment.builder()
+                // .setEthDst(MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR))
+                .setOutput(k8sNode.k8sMgmtVlanPortNum())
+                .build();
+
+            k8sFlowRuleService.setRule(
+                appId,
+                k8sNode.intgBridge(),
+                inboundCpFlowSelector,
+                inboundCpFlowTreatment,
+                PRIORITY_MGMT_VLAN_RULE,
+                INTG_INGRESS_TABLE,
+                install);
+            });
+            
+        // flow rules on external ovs node (kbr-int bridge)
+        k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {
+            // FIXME: Harcoded this first, will fix it if I have spare time...
+            ArrayList ipPortNumMapList = new ArrayList();
+            HashMap<String, String> ipPortNumMap = new HashMap<String, String>();
+            // master
+            ipPortNumMap.put("dstIp", "172.16.0.1");
+            ipPortNumMap.put("srcPort", "eth1");
+            ipPortNumMapList.add(ipPortNumMap);
+            ipPortNumMap = new HashMap<String, String>();
+            // worker-1
+            ipPortNumMap.put("dstIp", "172.16.0.2");
+            ipPortNumMap.put("srcPort", "eth2");
+            ipPortNumMapList.add(ipPortNumMap);
+            // worker-2
+            ipPortNumMap = new HashMap<String, String>();
+            ipPortNumMap.put("dstIp", "172.16.0.3");
+            ipPortNumMap.put("srcPort", "eth3");
+            ipPortNumMapList.add(ipPortNumMap);
+
+            for (HashMap<String, String> map: ipPortNumMapList){
+                // local k8s node (k8s data ip) -> ext ovs
+                TrafficSelector cpFlowSelector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(map.get("dstIp")), 32))
+                .build();
+                
+                TrafficTreatment cpFlowTreatment = DefaultTrafficTreatment.builder()
+                .setEthSrc(node.intgBridgeMac())
+                .setOutput(node.customIntgPortNum(map.get("srcPort")))
+                .build();
+    
+                k8sFlowRuleService.setRule(
+                    appId,
+                    node.intgBridge(),
+                    cpFlowSelector,
+                    cpFlowTreatment,
+                    PRIORITY_MGMT_VLAN_RULE,
+                    INTG_INGRESS_TABLE,
+                    install);
+            }
+        });
+    }
+        
+        /**
+         * Obtains the VNI from the given kubernetes port.
+         *
      * @param port kubernetes port object
      * @return Virtual Network Identifier (VNI)
      */
@@ -423,9 +525,14 @@ public class K8sSwitchingHandler {
 
         @Override
         public void event(K8sNodeEvent event) {
+            K8sNode k8sNode = event.subject();
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    eventExecutor.execute(() -> processNodeCompletion(event.subject()));
+                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                        // TODO: See if we need to do something here
+                    } else {
+                        eventExecutor.execute(() -> processNodeCompletion(k8sNode));
+                    }
                     break;
                 default:
                     break;

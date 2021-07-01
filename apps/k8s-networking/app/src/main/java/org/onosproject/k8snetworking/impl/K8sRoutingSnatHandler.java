@@ -312,12 +312,21 @@ public class K8sRoutingSnatHandler {
 
         @Override
         public void event(K8sNodeEvent event) {
+            K8sNode k8sNode = event.subject();
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    eventExecutor.execute(() -> processNodeCompletion(event.subject()));
+                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                        // TODO: See if we need to do something here
+                    } else {
+                        eventExecutor.execute(() -> processNodeCompletion(k8sNode));
+                    }
                     break;
                 case K8S_NODE_UPDATED:
-                    eventExecutor.execute(() -> processNodeUpdate(event.subject()));
+                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                        // TODO: See if we need to do something here
+                    } else {
+                        eventExecutor.execute(() -> processNodeUpdate(k8sNode));
+                    }
                     break;
                 case K8S_NODE_INCOMPLETE:
                 default:

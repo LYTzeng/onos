@@ -41,4 +41,11 @@ public interface K8sNodeAdminService extends K8sNodeService {
      * @return removed node; null if the node does not exist
      */
     K8sNode removeNode(String hostname);
+
+    /**
+     * Creates a external OvS node
+     * 
+     * @param node External OvS node
+     */
+    void createExtOvsNode(K8sNode node);
 }

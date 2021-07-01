@@ -84,13 +84,16 @@ import static org.onosproject.k8snode.api.Constants.LOCAL_TO_INTEGRATION_BRIDGE;
 import static org.onosproject.k8snode.api.Constants.PHYSICAL_EXTERNAL_BRIDGE;
 import static org.onosproject.k8snode.api.Constants.VXLAN;
 import static org.onosproject.k8snode.api.Constants.VXLAN_TUNNEL;
+import static org.onosproject.k8snode.api.K8sNode.Type.EXTOVS;
 import static org.onosproject.k8snode.api.K8sNodeService.APP_ID;
 import static org.onosproject.k8snode.api.K8sNodeState.COMPLETE;
 import static org.onosproject.k8snode.api.K8sNodeState.DEVICE_CREATED;
 import static org.onosproject.k8snode.api.K8sNodeState.INCOMPLETE;
+import static org.onosproject.k8snode.api.K8sNodeState.EXT_OVS_CREATED;
 import static org.onosproject.k8snode.util.K8sNodeUtil.getBooleanProperty;
 import static org.onosproject.k8snode.util.K8sNodeUtil.getOvsdbClient;
 import static org.onosproject.k8snode.util.K8sNodeUtil.isOvsdbConnected;
+import static org.onosproject.k8snode.util.K8sNodeUtil.addOrRemoveSystemInterface;
 import static org.onosproject.net.AnnotationKeys.PORT_NAME;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -264,6 +267,24 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         // do something if needed
     }
 
+    @Override
+    public void processExtOvsCreatedState(K8sNode k8sNode) {
+        if (!isOvsdbConnected(k8sNode, ovsdbPort, ovsdbController, deviceService)) {
+            ovsdbController.connect(k8sNode.managementIp(), tpPort(ovsdbPort));
+            return;
+        }
+
+        if (!deviceService.isAvailable(k8sNode.intgBridge())) {
+            createBridge(k8sNode, INTEGRATION_BRIDGE, k8sNode.intgBridge());
+        }
+        if (!deviceService.isAvailable(k8sNode.extBridge())) {
+            createBridge(k8sNode, EXTERNAL_BRIDGE, k8sNode.extBridge());
+        }
+
+        createExtOvsPatchInterface(k8sNode);
+        addSystemIntfToExtOvsNode(k8sNode);
+    }
+
     /**
      * Extracts properties from the component configuration context.
      *
@@ -394,6 +415,51 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
     }
 
     /**
+     * Create patch interfaces for external OvS node
+     * kbr-int <-> kbr-ex
+     * 
+     * @param node external OvS node
+     */
+    private void createExtOvsPatchInterface(K8sNode node) {
+        Device device = deviceService.getDevice(node.ovsdb());
+        if (device == null || !device.is(InterfaceConfig.class)) {
+            log.error("Failed to create patch interface on {}", node.ovsdb());
+            return;
+        }
+
+        // integration bridge -> external bridge
+        PatchDescription brIntExtPatchDesc =
+                DefaultPatchDescription.builder()
+                .deviceId(INTEGRATION_BRIDGE)
+                .ifaceName(INTEGRATION_TO_EXTERNAL_BRIDGE)
+                .peer(PHYSICAL_EXTERNAL_BRIDGE)
+                .build();
+
+        // external bridge -> integration bridge
+        PatchDescription brExtIntPatchDesc =
+                DefaultPatchDescription.builder()
+                .deviceId(EXTERNAL_BRIDGE)
+                .ifaceName(PHYSICAL_EXTERNAL_BRIDGE)
+                .peer(INTEGRATION_TO_EXTERNAL_BRIDGE)
+                .build();
+    }
+
+    /**
+     * Add required system interface to externl OvS node
+     * 
+     * @param node external OvS node
+     */
+    private void addSystemIntfToExtOvsNode(K8sNode node) {
+        List<String> intgBridgeSystemIntf = new ArrayList<String>();
+        intgBridgeSystemIntf.add("eth1");
+        intgBridgeSystemIntf.add("eth2");
+        intgBridgeSystemIntf.add("eth3");
+        for (String intfName: intgBridgeSystemIntf) {
+            addOrRemoveSystemInterface(node, INTEGRATION_BRIDGE, intfName, deviceService, true);
+        }
+    }
+
+    /**
      * Creates a tunnel interface in a given kubernetes node.
      *
      * @param k8sNode       kubernetes node
@@ -487,6 +553,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
                 // always return false
                 // run init CLI to re-trigger node bootstrap
                 return false;
+            case EXT_OVS_CREATED:
+                return isExtOvsCreatedDone(k8sNode);
             default:
                 return true;
         }
@@ -538,6 +606,25 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         return true;
     }
 
+    private boolean isExtOvsCreatedDone(K8sNode node) {
+        if (!isOvsdbConnected(k8sNode, ovsdbPort,
+                ovsdbController, deviceService)) {
+            return false;
+        }
+
+        try {
+            // we need to wait a while, in case interface and bridge
+            // creation requires some time
+            sleep(SLEEP_MS);
+        } catch (InterruptedException e) {
+            log.error("Exception caused during init state checking...");
+        }
+        
+        return k8sNode.intgBridge() != null && k8sNode.extBridge() != null &&
+            deviceService.isAvailable(k8sNode.intgBridge()) &&
+            deviceService.isAvailable(k8sNode.extBridge());
+    }
+
     /**
      * Configures the kubernetes node with new state.
      *
@@ -555,6 +642,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
 
     /**
      * Bootstraps a new kubernetes node.
+     * If the node.state() is EXT_OVS_CREATED, 
+     * then bootstrap a new ext ovs node
      *
      * @param k8sNode kubernetes node
      */
@@ -567,6 +656,21 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
             k8sNode.state().process(this, k8sNode);
         }
     }
+
+    // /**
+    //  * Bootstraps a new external ovs node.
+    //  *
+    //  * @param k8sNode external ovs node
+    //  */
+    // private void bootstrapExtOvsNode(K8sNode k8sNode) {
+    //     if (isCurrentStateDone(k8sNode)) {
+    //         setState(k8sNode, k8sNode.state().nextState());
+    //     } else {
+    //         log.trace("Processing {} state for {}", k8sNode.state(),
+    //                 k8sNode.hostname());
+    //         k8sNode.state().process(this, k8sNode);
+    //     }
+    // }
 
     private void processK8sNodeRemoved(K8sNode k8sNode) {
         OvsdbClientService client = getOvsdbClient(k8sNode, ovsdbPort, ovsdbController);
@@ -625,6 +729,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
 
                         if (deviceService.isAvailable(device.id())) {
                             log.debug("OVSDB {} detected", device.id());
+                            // bootstrap nodes whether it's k8s node or ext ovs node
+                            // the K8sNodeState enum methods will handle it
                             bootstrapNode(k8sNode);
                         }
                     });

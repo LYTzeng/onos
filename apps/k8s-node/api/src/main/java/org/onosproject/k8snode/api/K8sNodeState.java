@@ -117,6 +117,20 @@ public enum K8sNodeState {
         public K8sNodeState nextState() {
             return INIT;
         }
+    },
+    /**
+     * Indicates ext ovs node is created.
+     */
+    EXT_OVS_CREATED {
+        @Override
+        public void process(K8sNodeHandler handler, K8sNode node) {
+            handler.processExtOvsCreatedState(node);
+        }
+
+        @Override
+        public K8sNodeState nextState() {
+            return COMPLETE;
+        }
     };
 
     /**

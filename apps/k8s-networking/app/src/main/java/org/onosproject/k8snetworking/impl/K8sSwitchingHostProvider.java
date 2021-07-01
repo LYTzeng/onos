@@ -374,10 +374,13 @@ public class K8sSwitchingHostProvider extends AbstractProvider implements HostPr
         @Override
         public void event(K8sNodeEvent event) {
             K8sNode k8sNode = event.subject();
-
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    executor.execute(() -> processCompleteNode(event, k8sNode));
+                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                        // TODO: See if we need to do something here
+                    } else {
+                        executor.execute(() -> processCompleteNode(event, k8sNode));
+                    }
                     break;
                 case K8S_NODE_UPDATED:
                     if (k8sNode.state() == INIT) {
