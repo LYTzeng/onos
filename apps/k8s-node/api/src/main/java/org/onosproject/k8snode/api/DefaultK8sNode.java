@@ -368,11 +368,7 @@ public class DefaultK8sNode implements K8sNode {
         return portNumber(intgBridge, K8S_MGMT_VLAN_INTF);
     }
 
-    /**
-     * Used in Ext Ovs node to get PortNumber by port name
-     * @param portName
-     * @return
-     */
+    @Override
     public PortNumber customIntgPortNum(String portName) {
         return portNumber(intgBridge, portName);
     }

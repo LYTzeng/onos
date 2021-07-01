@@ -269,7 +269,7 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
     }
 
     protected void initializeExtOvsPipeline(K8sNode node) {
-        DeviceId deviceId = k8sNode.intgBridge();
+        DeviceId deviceId = node.intgBridge();
 
         // table 0 -> 30
         connectTables(deviceId, INTG_INGRESS_TABLE, INTG_PORT_CLASSIFY_TABLE);

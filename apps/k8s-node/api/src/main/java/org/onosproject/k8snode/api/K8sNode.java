@@ -261,6 +261,13 @@ public interface K8sNode {
     PortNumber k8sMgmtVlanPortNum();
 
     /**
+     * Used in Ext Ovs node to get PortNumber by port name
+     * @param portName specify a port name, ex. eth1
+     * @return port number, null if the port does not exist
+     */
+    PortNumber customIntgPortNum(String portName);
+
+    /**
      * Returns the MAC address. of kbr-int-mgmt on this node
      *
      * @return MAC address; null if the MAC address does not exist

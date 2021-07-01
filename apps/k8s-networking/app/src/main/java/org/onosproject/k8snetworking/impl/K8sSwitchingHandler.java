@@ -24,6 +24,7 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.onlab.packet.Ethernet;
 import org.onlab.packet.IpPrefix;
 import org.onlab.packet.MacAddress;
+import org.onlab.packet.IpAddress;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.cfg.ConfigProperty;
 import org.onosproject.cluster.ClusterService;
@@ -363,8 +364,8 @@ public class K8sSwitchingHandler {
             k8sFlowRuleService.setRule(
                 appId,
                 k8sNode.intgBridge(),
-                outbountCpFlowSelector,
-                outbountCpFlowTreatment,
+                outboundCpFlowSelector,
+                outboundCpFlowTreatment,
                 PRIORITY_MGMT_VLAN_RULE,
                 INTG_INGRESS_TABLE,
                 install);
@@ -394,7 +395,7 @@ public class K8sSwitchingHandler {
         // flow rules on external ovs node (kbr-int bridge)
         k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {
             // FIXME: Harcoded this first, will fix it if I have spare time...
-            ArrayList ipPortNumMapList = new ArrayList();
+            ArrayList ipPortNumMapList = new ArrayList<HashMap<String, String>>();
             HashMap<String, String> ipPortNumMap = new HashMap<String, String>();
             // master
             ipPortNumMap.put("dstIp", "172.16.0.1");
