@@ -72,9 +72,8 @@ public class DefaultK8sApiConfigHandler {
     private static final String MGMT_INTF_IP = "management.interface.ip";
     private static final String ONOS_IP = "controller.ip";
 
-    private static final String EXT_OVS_DATA_IP = "10.11.0.1";
     private static final String EXT_OVS_NS_BRIDGE_IP = "192.168.60.254";
-    private static final String EXT_OVS_MGMT_IP = "172.30.0.54";
+    private static final String EXT_OVS_MGMT_IP = "172.30.0.254";
     private static final String EXT_OVS_OUTBOUND_INTF_NAME = "eth7";
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
@@ -99,7 +98,8 @@ public class DefaultK8sApiConfigHandler {
 
     private ApplicationId appId;
     private NodeId localNode;
-
+    
+    private String exernalOvsIp;
     private IpAddress onosControllerIp;
 
     @Activate
@@ -149,8 +149,8 @@ public class DefaultK8sApiConfigHandler {
 
     // builder for external OvS node
     private K8sNode buildExternalOvsNode(){
-        IpAddress managementIp = IpAddress.valueOf(exernalOvsIp);
-        IpAddress dataIp = IpAddress.valueOf(EXT_OVS_DATA_IP);
+        IpAddress managementIp = IpAddress.valueOf(EXT_OVS_MGMT_IP);
+        IpAddress dataIp = IpAddress.valueOf(exernalOvsIp);
         String hostname = "ovs";
         K8sNode.Type nodeType = EXTOVS;
         String extIntf = EXT_OVS_OUTBOUND_INTF_NAME;
@@ -158,7 +158,7 @@ public class DefaultK8sApiConfigHandler {
         
         return DefaultK8sNode.builder()
             .hostname(hostname)
-            .managementIp(EXT_OVS_MGMT_IP)
+            .managementIp(managementIp)
             .controllerIp(onosControllerIp)
             .dataIp(dataIp)
             .extIntf(extIntf)
@@ -206,6 +206,10 @@ public class DefaultK8sApiConfigHandler {
 
         if(onosControllerIp == null){
             onosControllerIp = controllerIp;
+        }
+
+        if (exernalOvsIp == null){
+            exernalOvsIp = extOvsIpStr;
         }
 
         managementIp = IpAddress.valueOf(annots.get(MGMT_INTF_IP));

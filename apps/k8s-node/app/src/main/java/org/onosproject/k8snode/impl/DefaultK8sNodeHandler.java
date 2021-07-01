@@ -607,7 +607,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
     }
 
     private boolean isExtOvsCreatedDone(K8sNode node) {
-        if (!isOvsdbConnected(k8sNode, ovsdbPort,
+        if (!isOvsdbConnected(node, ovsdbPort,
                 ovsdbController, deviceService)) {
             return false;
         }
@@ -620,9 +620,9 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
             log.error("Exception caused during init state checking...");
         }
         
-        return k8sNode.intgBridge() != null && k8sNode.extBridge() != null &&
-            deviceService.isAvailable(k8sNode.intgBridge()) &&
-            deviceService.isAvailable(k8sNode.extBridge());
+        return node.intgBridge() != null && node.extBridge() != null &&
+            deviceService.isAvailable(node.intgBridge()) &&
+            deviceService.isAvailable(node.extBridge());
     }
 
     /**
