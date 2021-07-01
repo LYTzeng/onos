@@ -395,7 +395,7 @@ public class K8sSwitchingHandler {
         // flow rules on external ovs node (kbr-int bridge)
         k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {
             // FIXME: Harcoded this first, will fix it if I have spare time...
-            ArrayList ipPortNumMapList = new ArrayList<HashMap<String, String>>();
+            ArrayList<HashMap<String, String>> ipPortNumMapList = new ArrayList<HashMap<String, String>>();
             HashMap<String, String> ipPortNumMap = new HashMap<String, String>();
             // master
             ipPortNumMap.put("dstIp", "172.16.0.1");

@@ -261,16 +261,21 @@ public class K8sSwitchingArpHandler {
             Stream<K8sNode> dataIpStream = k8sNodeService.completeNodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp));
 
+            final Boolean isReplyOvsKbrIntMgmtMac = false;
             k8sNodeService.completeNodes().forEach(n -> {
                 String targetIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
                 String dataIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(n.dataIp().toString());
                 if (dataIpStream.count() > 0 &&
                     context.inPacket().receivedFrom().port().equals(n.k8sMgmtVlanIntf()) &&
                     targetIpPrefix.equals(dataIpPrefix)) {
-                    // Set replyMac to the MAC addr of management interface (namely kbr-int-mgmt)
-                    replyMac = MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR);
+                        isReplyOvsKbrIntMgmtMac = true;
                 }
             });
+
+            if(isReplyOvsKbrIntMgmtMac){
+                // Set replyMac to the MAC addr of management interface (namely kbr-int-mgmt)
+                replyMac = MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR);
+            }
         }
 
         if (replyMac == null) {
