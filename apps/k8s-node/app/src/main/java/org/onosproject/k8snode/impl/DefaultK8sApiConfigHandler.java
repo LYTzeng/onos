@@ -73,7 +73,7 @@ public class DefaultK8sApiConfigHandler {
     private static final String ONOS_IP = "controller.ip";
 
     private static final String EXT_OVS_NS_BRIDGE_IP = "192.168.60.254";
-    private static final String EXT_OVS_MGMT_IP = "172.30.0.254";
+    private static final String EXT_OVS_MGMT_IP = "172.30.0.54";
     private static final String EXT_OVS_OUTBOUND_INTF_NAME = "eth7";
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
