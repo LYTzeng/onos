@@ -184,16 +184,19 @@ public class K8sNodeManager
                     NOT_DUPLICATED_MSG, extNode.extBridge());
         }
 
-        if (node.localBridge() == null) {
-            String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
-            checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
-            localNode = extNode.updateLocalBridge(DeviceId.deviceId(deviceIdStr));
-            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                    NOT_DUPLICATED_MSG, localNode.localBridge());
-        } else {
-            localNode = extNode;
-            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                    NOT_DUPLICATED_MSG, localNode.localBridge());
+        // TODO: Remove useless local bridge in the future
+        if (node.type() != EXTOVS){
+            if (node.localBridge() == null) {
+                String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
+                checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
+                localNode = extNode.updateLocalBridge(DeviceId.deviceId(deviceIdStr));
+                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                        NOT_DUPLICATED_MSG, localNode.localBridge());
+            } else {
+                localNode = extNode;
+                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                        NOT_DUPLICATED_MSG, localNode.localBridge());
+            }
         }
 
         nodeStore.createNode(localNode);
@@ -235,16 +238,19 @@ public class K8sNodeManager
                     NOT_DUPLICATED_MSG, extNode.extBridge());
         }
 
-        DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
+        // TODO: Remove useless local bridge in the future
+        if (node.type() != EXTOVS){
+            DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
 
-        if (extNode.localBridge() == null) {
-            localNode = extNode.updateLocalBridge(existLocalBridge);
-            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                    NOT_DUPLICATED_MSG, localNode.localBridge());
-        } else {
-            localNode = extNode;
-            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                    NOT_DUPLICATED_MSG, localNode.localBridge());
+            if (extNode.localBridge() == null) {
+                localNode = extNode.updateLocalBridge(existLocalBridge);
+                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                        NOT_DUPLICATED_MSG, localNode.localBridge());
+            } else {
+                localNode = extNode;
+                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                        NOT_DUPLICATED_MSG, localNode.localBridge());
+            }
         }
 
         nodeStore.updateNode(localNode);
