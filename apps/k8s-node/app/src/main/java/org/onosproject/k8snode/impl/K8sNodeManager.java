@@ -197,6 +197,8 @@ public class K8sNodeManager
                 checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
                         NOT_DUPLICATED_MSG, localNode.localBridge());
             }
+        } else {
+            localNode = extNode;
         }
 
         nodeStore.createNode(localNode);
@@ -251,6 +253,8 @@ public class K8sNodeManager
                 checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
                         NOT_DUPLICATED_MSG, localNode.localBridge());
             }
+        } else {
+            localNode = extNode;
         }
 
         nodeStore.updateNode(localNode);
