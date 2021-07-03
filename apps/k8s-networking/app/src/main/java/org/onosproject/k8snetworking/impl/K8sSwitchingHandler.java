@@ -143,7 +143,6 @@ public class K8sSwitchingHandler {
         leadershipService.runForLeadership(appId.name());
 
         setGatewayRulesForTunnel(true);
-        setK8sMgmtVlanRules(true);
 
         log.info("Started");
     }
@@ -156,7 +155,6 @@ public class K8sSwitchingHandler {
         eventExecutor.shutdown();
 
         setGatewayRulesForTunnel(false);
-        setK8sMgmtVlanRules(false);
 
         log.info("Stopped");
     }
@@ -346,93 +344,86 @@ public class K8sSwitchingHandler {
         });
     }
 
-    private void setK8sMgmtVlanRules(boolean install) {
-        // Flow rules on k8s nodes
-        k8sNodeService.nodes().forEach(k8sNode -> {
-            // local k8s node (k8s data ip) -> ext ovs
-            TrafficSelector outboundCpFlowSelector = DefaultTrafficSelector.builder()
-                .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(k8sNode.dataIp(), 24))
-                .matchInPort(k8sNode.k8sMgmtVlanPortNum())
-                .build();
+    /**
+     * Flow rules on k8s nodes
+     * 
+     * @param k8sNode
+     */
+    private void setK8sNodeMgmtVlanRules(K8sNode k8sNode) {
+        // local k8s node (k8s data ip) -> ext ovs
+        TrafficSelector outboundCpFlowSelector = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchIPDst(IpPrefix.valueOf(k8sNode.dataIp(), 24))
+            .matchInPort(k8sNode.k8sMgmtVlanPortNum())
+            .build();
 
-            TrafficTreatment outboundCpFlowTreatment = DefaultTrafficTreatment.builder()
-                // .setEthDst(MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR))
-                .setOutput(k8sNode.extOvsPortNum())
-                .build();
+        TrafficTreatment outboundCpFlowTreatment = DefaultTrafficTreatment.builder()
+            // .setEthDst(MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR))
+            .setOutput(k8sNode.extOvsPortNum())
+            .build();
 
-            k8sFlowRuleService.setRule(
-                appId,
-                k8sNode.intgBridge(),
-                outboundCpFlowSelector,
-                outboundCpFlowTreatment,
-                PRIORITY_MGMT_VLAN_RULE,
-                INTG_INGRESS_TABLE,
-                install);
+        k8sFlowRuleService.setRule(
+            appId,
+            k8sNode.intgBridge(),
+            outboundCpFlowSelector,
+            outboundCpFlowTreatment,
+            PRIORITY_MGMT_VLAN_RULE,
+            INTG_INGRESS_TABLE,
+            true);
 
-            // ext ovs (from other k8s nodes) -> local k8s node
-            TrafficSelector inboundCpFlowSelector = DefaultTrafficSelector.builder()
-                .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(k8sNode.dataIp(), 32))
-                .matchInPort(k8sNode.extOvsPortNum())
-                .build();
+        // ext ovs (from other k8s nodes) -> local k8s node
+        TrafficSelector inboundCpFlowSelector = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchIPDst(IpPrefix.valueOf(k8sNode.dataIp(), 32))
+            .matchInPort(k8sNode.extOvsPortNum())
+            .build();
 
-            TrafficTreatment inboundCpFlowTreatment = DefaultTrafficTreatment.builder()
-                // .setEthDst(MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR))
-                .setOutput(k8sNode.k8sMgmtVlanPortNum())
-                .build();
+        TrafficTreatment inboundCpFlowTreatment = DefaultTrafficTreatment.builder()
+            // .setEthDst(MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR))
+            .setOutput(k8sNode.k8sMgmtVlanPortNum())
+            .build();
 
-            k8sFlowRuleService.setRule(
-                appId,
-                k8sNode.intgBridge(),
-                inboundCpFlowSelector,
-                inboundCpFlowTreatment,
-                PRIORITY_MGMT_VLAN_RULE,
-                INTG_INGRESS_TABLE,
-                install);
-        });
-            
+        k8sFlowRuleService.setRule(
+            appId,
+            k8sNode.intgBridge(),
+            inboundCpFlowSelector,
+            inboundCpFlowTreatment,
+            PRIORITY_MGMT_VLAN_RULE,
+            INTG_INGRESS_TABLE,
+            install);
+
+        setExtOvsNodeMgmtVlanRules(k8sNode.dataIp());
+    }
+           
+    /**
+     * Set flow rules for K8s control plane networking on Ext. OvS node
+     * @param dataIp
+     */
+    private void setExtOvsNodeMgmtVlanRules(IpAddress dataIp) {
+        String dataIpStr = dataIp.toString();
+        // FIXME: Harcoded this first, will fix it if I have spare time...
+        String interfaceName = "eth" + dataIpStr.split("\\.")[3];
         // flow rules on external ovs node (kbr-int bridge)
         k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {
-            // FIXME: Harcoded this first, will fix it if I have spare time...
-            ArrayList<HashMap<String, String>> ipPortNumMapList = new ArrayList<HashMap<String, String>>();
-            HashMap<String, String> ipPortNumMap = new HashMap<String, String>();
-            // master
-            ipPortNumMap.put("dstIp", "172.16.0.1");
-            ipPortNumMap.put("srcPort", "eth1");
-            ipPortNumMapList.add(ipPortNumMap);
-            ipPortNumMap = new HashMap<String, String>();
-            // worker-1
-            ipPortNumMap.put("dstIp", "172.16.0.2");
-            ipPortNumMap.put("srcPort", "eth2");
-            ipPortNumMapList.add(ipPortNumMap);
-            // worker-2
-            ipPortNumMap = new HashMap<String, String>();
-            ipPortNumMap.put("dstIp", "172.16.0.3");
-            ipPortNumMap.put("srcPort", "eth3");
-            ipPortNumMapList.add(ipPortNumMap);
-
-            for (HashMap<String, String> map: ipPortNumMapList){
-                // local k8s node (k8s data ip) -> ext ovs
-                TrafficSelector cpFlowSelector = DefaultTrafficSelector.builder()
+            // local k8s node (k8s data ip) -> ext ovs
+            TrafficSelector cpFlowSelector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(map.get("dstIp")), 32))
+                .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(dataIp), 32))
                 .build();
-                
-                TrafficTreatment cpFlowTreatment = DefaultTrafficTreatment.builder()
+            
+            TrafficTreatment cpFlowTreatment = DefaultTrafficTreatment.builder()
                 .setEthSrc(node.intgBridgeMac())
-                .setOutput(node.customIntgPortNum(map.get("srcPort")))
+                .setOutput(node.customIntgPortNum(interfaceName))
                 .build();
-    
-                k8sFlowRuleService.setRule(
-                    appId,
-                    node.intgBridge(),
-                    cpFlowSelector,
-                    cpFlowTreatment,
-                    PRIORITY_MGMT_VLAN_RULE,
-                    INTG_INGRESS_TABLE,
-                    install);
-            }
+
+            k8sFlowRuleService.setRule(
+                appId,
+                node.intgBridge(),
+                cpFlowSelector,
+                cpFlowTreatment,
+                PRIORITY_MGMT_VLAN_RULE,
+                INTG_INGRESS_TABLE,
+                install);
         });
     }
         
@@ -547,6 +538,7 @@ public class K8sSwitchingHandler {
 
             setExtToIntgTunnelTagFlowRules(k8sNode, true);
             setLocalTunnelTagFlowRules(k8sNode, true);
+            setK8sNodeMgmtVlanRules(k8sNode); // [Mod]
         }
     }
 }
