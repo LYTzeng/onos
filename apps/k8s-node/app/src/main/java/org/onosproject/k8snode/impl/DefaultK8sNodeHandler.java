@@ -650,7 +650,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
     private void bootstrapNode(K8sNode k8sNode) {
         if (isCurrentStateDone(k8sNode)) {
             if (k8sNode.type() == K8sNode.Type.EXTOVS) {
-                log.info("EXTOVS node detected")
+                log.info("EXTOVS node detected");
             }
             setState(k8sNode, k8sNode.state().nextState());
         } else {
