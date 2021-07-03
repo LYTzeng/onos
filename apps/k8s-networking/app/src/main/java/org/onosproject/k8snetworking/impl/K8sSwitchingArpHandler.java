@@ -228,7 +228,7 @@ public class K8sSwitchingArpHandler {
                 .findAny().orElse(null);
 
         String extOvsInterfaceName = k8sNodeService.completeNodes().stream()
-            .map(K8sNode::extOvsPortNum).findFirst().name();
+            .map(K8sNode::extOvsPortNum).findFirst().get().name();
 
         if (srcPort == null && (!context.inPacket().receivedFrom().port()
                 .equals(PortNumber.LOCAL) || context.inPacket().receivedFrom().port()
