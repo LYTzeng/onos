@@ -346,7 +346,7 @@ public class K8sSwitchingHandler {
         });
     }
 
-    private void setK8sMgmtVlanRules(boolean install) {
+    public void setK8sMgmtVlanRules(boolean install) {
         // Flow rules on k8s nodes
         k8sNodeService.completeNodes().forEach(k8sNode -> {
             // local k8s node (k8s data ip) -> ext ovs

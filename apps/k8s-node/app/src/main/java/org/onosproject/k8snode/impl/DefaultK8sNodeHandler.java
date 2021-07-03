@@ -36,6 +36,7 @@ import org.onosproject.k8snode.api.K8sNodeHandler;
 import org.onosproject.k8snode.api.K8sNodeListener;
 import org.onosproject.k8snode.api.K8sNodeService;
 import org.onosproject.k8snode.api.K8sNodeState;
+import org.onosproject.k8snetworking.api.K8sSwitchingHandler;
 import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.Port;
@@ -209,6 +210,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         if (!deviceService.isAvailable(k8sNode.localBridge())) {
             createBridge(k8sNode, LOCAL_BRIDGE, k8sNode.localBridge());
         }
+
+        addExtOvsIntfToIntgBridge(k8sNode);
     }
 
     @Override
@@ -265,6 +268,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
     @Override
     public void processPostOnBoardState(K8sNode k8sNode) {
         // do something if needed
+        K8sSwitchingHandler k8sSwitchingHandler = new K8sSwitchingHandler();
+        k8sSwitchingHandler.setK8sMgmtVlanRules(true);
     }
 
     @Override
@@ -280,7 +285,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         if (!deviceService.isAvailable(k8sNode.extBridge())) {
             createBridge(k8sNode, EXTERNAL_BRIDGE, k8sNode.extBridge());
         }
-
+        
         createExtOvsPatchInterface(k8sNode);
         addSystemIntfToExtOvsNode(k8sNode);
     }
@@ -457,6 +462,15 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         for (String intfName: intgBridgeSystemIntf) {
             addOrRemoveSystemInterface(node, INTEGRATION_BRIDGE, intfName, deviceService, true);
         }
+    }
+
+    /**
+     * Add ext ovs interface to kbr-int in k8s node
+     * 
+     * @param node external OvS node
+     */
+    private void addExtOvsIntfToIntgBridge(K8sNode node) {
+        addOrRemoveSystemInterface(node, INTEGRATION_BRIDGE, "eth1", deviceService, true);
     }
 
     /**
