@@ -59,7 +59,6 @@ import java.util.concurrent.Executors;
 import static org.onlab.util.Tools.groupedThreads;
 import static org.onosproject.k8snetworking.api.Constants.ACL_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.ARP_TABLE;
-import static org.onosproject.k8snetworking.api.Constants.DEFAULT_GATEWAY_MAC;
 import static org.onosproject.k8snetworking.api.Constants.FORWARDING_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.GROUPING_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.HOST_PREFIX;
@@ -254,12 +253,6 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
         // for ACL table transition to routing table
         connectTables(deviceId, ACL_TABLE, ROUTING_TABLE);
 
-        // for grouping table transition
-        // we need grouping table for bypassing routing table which contains large
-        // amount of flow rules which might cause performance degradation during
-        // table lookup
-        // setupJumpTable(k8sNode);
-
         // for routing and outbound table transition
         connectTables(deviceId, ROUTING_TABLE, STAT_EGRESS_TABLE);
 
@@ -276,45 +269,6 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
 
         //table 30 -> 35
         connectTables(deviceId, INTG_PORT_CLASSIFY_TABLE, INTG_ARP_TABLE);
-    }
-
-    private void setupJumpTable(K8sNode k8sNode) {
-        DeviceId deviceId = k8sNode.intgBridge();
-
-        TrafficSelector.Builder selector = DefaultTrafficSelector.builder();
-        TrafficTreatment.Builder treatment = DefaultTrafficTreatment.builder();
-
-        selector.matchEthDst(DEFAULT_GATEWAY_MAC);
-        treatment.transition(ROUTING_TABLE);
-
-        FlowRule flowRule = DefaultFlowRule.builder()
-                .forDevice(deviceId)
-                .withSelector(selector.build())
-                .withTreatment(treatment.build())
-                .withPriority(HIGH_PRIORITY)
-                .fromApp(appId)
-                .makePermanent()
-                .forTable(GROUPING_TABLE)
-                .build();
-
-        applyRule(flowRule, true);
-
-        selector = DefaultTrafficSelector.builder();
-        treatment = DefaultTrafficTreatment.builder();
-
-        treatment.transition(STAT_EGRESS_TABLE);
-
-        flowRule = DefaultFlowRule.builder()
-                .forDevice(deviceId)
-                .withSelector(selector.build())
-                .withTreatment(treatment.build())
-                .withPriority(DROP_PRIORITY)
-                .fromApp(appId)
-                .makePermanent()
-                .forTable(GROUPING_TABLE)
-                .build();
-
-        applyRule(flowRule, true);
     }
 
     private void setAnyRoutingRule(IpPrefix srcIpPrefix, MacAddress mac,
