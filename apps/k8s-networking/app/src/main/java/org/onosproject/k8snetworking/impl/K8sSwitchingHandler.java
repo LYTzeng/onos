@@ -390,7 +390,7 @@ public class K8sSwitchingHandler {
             inboundCpFlowTreatment,
             PRIORITY_MGMT_VLAN_RULE,
             INTG_INGRESS_TABLE,
-            install);
+            true);
 
         setExtOvsNodeMgmtVlanRules(k8sNode.dataIp());
     }
@@ -408,7 +408,7 @@ public class K8sSwitchingHandler {
             // local k8s node (k8s data ip) -> ext ovs
             TrafficSelector cpFlowSelector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(dataIp), 32))
+                .matchIPDst(IpPrefix.valueOf(dataIp, 32))
                 .build();
             
             TrafficTreatment cpFlowTreatment = DefaultTrafficTreatment.builder()
@@ -423,7 +423,7 @@ public class K8sSwitchingHandler {
                 cpFlowTreatment,
                 PRIORITY_MGMT_VLAN_RULE,
                 INTG_INGRESS_TABLE,
-                install);
+                true);
         });
     }
         
