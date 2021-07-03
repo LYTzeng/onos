@@ -252,13 +252,13 @@ public class K8sSwitchingArpHandler {
                 .map(K8sPort::macAddress)
                 .findAny().orElse(null);
 
-        long gwIpCnt = k8sNetworkService.networks().stream()
-                .filter(n -> n.gatewayIp().equals(targetIp))
-                .count();
+        // long gwIpCnt = k8sNetworkService.networks().stream()
+        //         .filter(n -> n.gatewayIp().equals(targetIp))
+        //         .count();
 
-        if (gwIpCnt > 0) {
-            replyMac = gwMacAddress;
-        }
+        // if (gwIpCnt > 0) {
+        //     replyMac = gwMacAddress;
+        // }
 
         // Handeling ARP Req from k8s node to external OvS node if target Ip == dataIp (172.16.x.x)
         if (replyMac == null) {
