@@ -346,9 +346,9 @@ public class K8sSwitchingHandler {
         });
     }
 
-    public void setK8sMgmtVlanRules(boolean install) {
+    private void setK8sMgmtVlanRules(boolean install) {
         // Flow rules on k8s nodes
-        k8sNodeService.completeNodes().forEach(k8sNode -> {
+        k8sNodeService.nodes().forEach(k8sNode -> {
             // local k8s node (k8s data ip) -> ext ovs
             TrafficSelector outboundCpFlowSelector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
@@ -390,7 +390,7 @@ public class K8sSwitchingHandler {
                 PRIORITY_MGMT_VLAN_RULE,
                 INTG_INGRESS_TABLE,
                 install);
-            });
+        });
             
         // flow rules on external ovs node (kbr-int bridge)
         k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {

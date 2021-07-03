@@ -36,7 +36,6 @@ import org.onosproject.k8snode.api.K8sNodeHandler;
 import org.onosproject.k8snode.api.K8sNodeListener;
 import org.onosproject.k8snode.api.K8sNodeService;
 import org.onosproject.k8snode.api.K8sNodeState;
-import org.onosproject.k8snetworking.api.K8sSwitchingHandler;
 import org.onosproject.net.Device;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.Port;
@@ -268,8 +267,6 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
     @Override
     public void processPostOnBoardState(K8sNode k8sNode) {
         // do something if needed
-        K8sSwitchingHandler k8sSwitchingHandler = new K8sSwitchingHandler();
-        k8sSwitchingHandler.setK8sMgmtVlanRules(true);
     }
 
     @Override
