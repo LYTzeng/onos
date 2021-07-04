@@ -228,11 +228,11 @@ public class K8sSwitchingArpHandler {
                 .findAny().orElse(null);
 
         String extOvsInterfaceName = k8sNodeService.completeNodes().stream()
-            .map(K8sNode::extOvsPortNum).findFirst().get().name();
+            .map(K8sNode::extOvsPortNum).findFirst().get().name(); // eth1 on k8snode
 
         if (srcPort == null && (!context.inPacket().receivedFrom().port()
                 .equals(PortNumber.LOCAL) || context.inPacket().receivedFrom().port()
-                .name() == extOvsInterfaceName)) {
+                .name() == "kbr-int-mgmt")) {
             log.warn("Failed to find source port(MAC:{})", ethPacket.getSourceMAC());
             return;
         }
