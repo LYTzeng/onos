@@ -284,7 +284,7 @@ public class K8sSwitchingArpHandler {
             K8sNode targetNode = k8sNodeService.completeNodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).findFirst().get();
 
-            replyMac = MacAddress.valueOf(targetNode.k8sMgmtVlanMac());
+            replyMac = targetNode.k8sMgmtVlanMac();
         }
 
         if (replyMac == null) {
