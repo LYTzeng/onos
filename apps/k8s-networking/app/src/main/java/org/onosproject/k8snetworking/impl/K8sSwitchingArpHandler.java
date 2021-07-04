@@ -262,7 +262,7 @@ public class K8sSwitchingArpHandler {
 
         // Handeling ARP Req from k8s node to external OvS node if target Ip == dataIp (172.16.x.x)
         if (replyMac == null) {
-            long dataIpNodeCount = k8sNodeService.completeNodes().stream()
+            long dataIpNodeCount = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).count();
 
             Set<K8sNode> completeNodes = k8sNodeService.completeNodes();
@@ -281,7 +281,7 @@ public class K8sSwitchingArpHandler {
 
         // Handeling ARP Req from external OvS node if target Ip == dataIp (172.16.x.x)
         if (replyMac == null) {
-            K8sNode targetNode = k8sNodeService.completeNodes().stream()
+            K8sNode targetNode = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).findFirst().get();
 
             replyMac = targetNode.k8sMgmtVlanMac();
