@@ -265,7 +265,7 @@ public class K8sSwitchingArpHandler {
             long dataIpNodeCount = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).count();
 
-            Set<K8sNode> completeNodes = k8sNodeService.completeNodes();
+            Set<K8sNode> completeNodes = k8sNodeService.nodes();
             for (K8sNode n : completeNodes){
                 String targetIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
                 String dataIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(n.dataIp().toString());
