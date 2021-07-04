@@ -231,8 +231,8 @@ public class K8sSwitchingArpHandler {
             .map(K8sNode::extOvsPortNum).findFirst().get().name(); // eth1 on k8snode
 
         if (srcPort == null && !context.inPacket().receivedFrom().port()
-                .equals(PortNumber.LOCAL) && context.inPacket().receivedFrom().port()
-                .name() != "kbr-int-mgmt") {
+                .equals(PortNumber.LOCAL) && !context.inPacket().receivedFrom().port()
+                .name().equals("kbr-int-mgmt")) {
             log.warn("Failed to find source port(MAC:{})", ethPacket.getSourceMAC());
             return;
         }
@@ -277,6 +277,14 @@ public class K8sSwitchingArpHandler {
                         break;
                 }
             }
+        }
+
+        // Handeling ARP Req from external OvS node if target Ip == dataIp (172.16.x.x)
+        if (replyMac == null) {
+            K8sNode targetNode = k8sNodeService.completeNodes().stream()
+                .filter(n -> n.dataIp().equals(targetIp)).findFirst().get();
+
+            replyMac = MacAddress.valueOf(targetNode.k8sMgmtVlanMac());
         }
 
         if (replyMac == null) {
