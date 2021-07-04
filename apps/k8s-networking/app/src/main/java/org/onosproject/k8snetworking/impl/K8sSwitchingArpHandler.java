@@ -265,9 +265,9 @@ public class K8sSwitchingArpHandler {
 
         // Handeling ARP Req from k8s node to external OvS node if target Ip == dataIp (172.16.x.x)
         K8sNode anyNode = k8sNodeService.nodes().stream().findAny().get();
-        String targetIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
+        String targetIpClassCPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
         String dataIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(anyNode.dataIp().toString());
-        if (replyMac == null && targetIpPrefix.equals(dataIpPrefix)) {
+        if (replyMac == null && targetIpClassCPrefix.equals(dataIpPrefix)) {
             long dataIpNodeCount = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).count();
 
@@ -283,7 +283,7 @@ public class K8sSwitchingArpHandler {
         }
 
         // Handeling ARP Req from external OvS node if target Ip == dataIp (172.16.x.x)
-        if (replyMac == null && targetIpPrefix.equals(dataIpPrefix)) {
+        if (replyMac == null && targetIpClassCPrefix.equals(dataIpPrefix)) {
             K8sNode targetNode = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).findFirst().get();
 
