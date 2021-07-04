@@ -230,9 +230,12 @@ public class K8sSwitchingArpHandler {
         String extOvsInterfaceName = k8sNodeService.completeNodes().stream()
             .map(K8sNode::extOvsPortNum).findFirst().get().name(); // eth1 on k8snode
 
-        if (srcPort == null && !context.inPacket().receivedFrom().port()
-                .equals(PortNumber.LOCAL) && !context.inPacket().receivedFrom().port()
-                .name().equals("kbr-int-mgmt")) {
+        if (srcPort == null &&
+            !context.inPacket().receivedFrom().port().equals(PortNumber.LOCAL) && 
+            k8sNodeService.completeNodes().stream().filter(
+                n -> n.k8sMgmtVlanPortNum().equals(context.inPacket().receivedFrom().port()))
+            .count() == 0 ) {
+            
             log.warn("Failed to find source port(MAC:{})", ethPacket.getSourceMAC());
             return;
         }
@@ -261,17 +264,17 @@ public class K8sSwitchingArpHandler {
         // }
 
         // Handeling ARP Req from k8s node to external OvS node if target Ip == dataIp (172.16.x.x)
-        if (replyMac == null) {
+        K8sNode anyNode = k8sNodeService.nodes().stream().findAny().get();
+        String targetIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
+        String dataIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(anyNode.dataIp().toString());
+        if (replyMac == null && targetIpPrefix.equals(dataIpPrefix)) {
             long dataIpNodeCount = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).count();
 
-            Set<K8sNode> completeNodes = k8sNodeService.nodes();
-            for (K8sNode n : completeNodes){
-                String targetIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(targetIp.toString());
-                String dataIpPrefix = K8sNetworkingUtil.getCclassIpPrefixFromCidr(n.dataIp().toString());
+            Set<K8sNode> nodes = k8sNodeService.nodes();
+            for (K8sNode n : nodes){
                 if (dataIpNodeCount > 0 &&
-                    context.inPacket().receivedFrom().port().equals(n.k8sMgmtVlanIntf()) &&
-                    targetIpPrefix.equals(dataIpPrefix)) {
+                    context.inPacket().receivedFrom().port().equals(n.k8sMgmtVlanIntf())) {
                         // Set replyMac to the MAC addr of management interface (namely kbr-int-mgmt)
                         replyMac = MacAddress.valueOf(EXT_OVS_KBR_INT_MGMT_MAC_STR);
                         break;
@@ -280,7 +283,7 @@ public class K8sSwitchingArpHandler {
         }
 
         // Handeling ARP Req from external OvS node if target Ip == dataIp (172.16.x.x)
-        if (replyMac == null) {
+        if (replyMac == null && targetIpPrefix.equals(dataIpPrefix)) {
             K8sNode targetNode = k8sNodeService.nodes().stream()
                 .filter(n -> n.dataIp().equals(targetIp)).findFirst().get();
 
