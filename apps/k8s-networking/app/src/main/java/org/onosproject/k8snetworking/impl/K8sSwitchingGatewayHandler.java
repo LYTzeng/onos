@@ -159,7 +159,7 @@ public class K8sSwitchingGatewayHandler {
 
             if (node.hostname().equals(k8sNetwork.name())) {
                 tBuilder.setEthDst(node.intgBridgeMac())
-                        .setOutput(node.extOvsPortNum());
+                        .setOutput(PortNumber.LOCAL);
             } //else {
             //     PortNumber portNum = tunnelPortNumByNetId(k8sNetwork.networkId(),
             //             k8sNetworkService, node);
