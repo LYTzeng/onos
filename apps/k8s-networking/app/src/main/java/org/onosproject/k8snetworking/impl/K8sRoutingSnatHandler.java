@@ -330,7 +330,7 @@ public class K8sRoutingSnatHandler {
             treatment,
             PRIORITY_STATEFUL_SNAT_RULE,
             ROUTING_TABLE,
-            install);
+            true);
     }
 
     private class InternalK8sNodeListener implements K8sNodeListener {
