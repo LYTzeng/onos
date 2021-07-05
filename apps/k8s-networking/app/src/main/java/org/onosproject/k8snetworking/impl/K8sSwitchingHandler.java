@@ -437,19 +437,19 @@ public class K8sSwitchingHandler {
         k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {
             String dataIpStr = k8sNode.dataIp().toString();
             String interfaceName = "eth" + dataIpStr.split("\\.")[3];
-            selector = DefaultTrafficSelector.builder()
+            TrafficSelector selectorExtOvs = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
                 .matchInPort(node.customIntgPortNum(interfaceName))
                 .build();
 
-            tBuilder = DefaultTrafficTreatment.builder()
+            TrafficBulider tBuilderExtOvs = DefaultTrafficTreatment.builder()
                 .transition(GROUPING_TABLE);
 
             k8sFlowRuleService.setRule(
                 appId,
                 node.intgBridge(),
-                selector,
-                tBuilder.build(),
+                selectorExtOvs,
+                tBuilderExtOvs.build(),
                 PRIORITY_TUNNEL_TAG_RULE,
                 INTG_PORT_CLASSIFY_TABLE,
                 true);            
