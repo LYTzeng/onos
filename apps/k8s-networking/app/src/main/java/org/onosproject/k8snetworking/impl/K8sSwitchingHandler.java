@@ -442,7 +442,7 @@ public class K8sSwitchingHandler {
                 .matchInPort(node.customIntgPortNum(interfaceName))
                 .build();
 
-            TrafficBulider tBuilderExtOvs = DefaultTrafficTreatment.builder()
+            TrafficTreatment.Builder tBuilderExtOvs = DefaultTrafficTreatment.builder()
                 .transition(GROUPING_TABLE);
 
             k8sFlowRuleService.setRule(
