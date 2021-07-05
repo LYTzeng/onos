@@ -215,7 +215,7 @@ public class K8sSwitchingHandler {
                             //         remoteNode.intgBridge())
                             // .setOutput(portNum)
                             .setEthSrc(localNode.intgBridgeMac())
-                            .setEthDst(extOvs.extOvsMac())
+                            .setEthDst(extOvs.intgBridgeMac())
                             .setOutput(remoteNode.extOvsPortNum())
                             .build();
 
