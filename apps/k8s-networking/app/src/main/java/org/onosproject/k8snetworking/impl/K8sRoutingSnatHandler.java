@@ -304,6 +304,35 @@ public class K8sRoutingSnatHandler {
         });
     }
 
+    // Flow EXTOVS 60-2
+    private void setExtOvsRoutingRules(K8sNode k8sNode){
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
+
+        String dataIpStr = k8sNode.dataIp().toString();
+        String interfaceName = "eth" + dataIpStr.split("\\.")[3];
+
+        TrafficSelector selector = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchIPDst(IpPrefix.valueOf(k8sNode.podCidr()))
+            .matchEthDst(extOvs.intgBridgeMac())
+            .build();
+
+        TrafficTreatment treatment = DefaultTrafficTreatment.builder()
+            .setEthSrc(extOvs.intgBridgeMac())
+            .setEthDst(k8sNode.intgBridgeMac())
+            .setOutput(extOvs.customIntgPortNum(interfaceName))
+            .build();
+
+        k8sFlowRuleService.setRule(
+            appId,
+            extOvs.intgBridge(),
+            selector,
+            treatment,
+            PRIORITY_STATEFUL_SNAT_RULE,
+            ROUTING_TABLE,
+            install);
+    }
+
     private class InternalK8sNodeListener implements K8sNodeListener {
 
         private boolean isRelevantHelper() {
@@ -342,6 +371,7 @@ public class K8sRoutingSnatHandler {
             setExtIntfArpRule(k8sNode, true);
             setSnatDownstreamRule(k8sNode, true);
             setContainerToExtRule(k8sNode, true);
+            setExtOvsRoutingRules(k8sNode);
         }
 
         private void processNodeUpdate(K8sNode k8sNode) {

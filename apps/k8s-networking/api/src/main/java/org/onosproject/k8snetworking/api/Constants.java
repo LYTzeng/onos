@@ -129,10 +129,11 @@ public final class Constants {
 
     public static final int LOCAL_ENTRY_TABLE = 0;
 
-    // Flow table index for External OvS
+    // [MOD] New Flow table for our experiment
     public static final int INTG_INGRESS_TABLE = 0;
     public static final int INTG_PORT_CLASSIFY_TABLE = 30;
     public static final int INTG_ARP_TABLE = 35;
+    public static final int INTG_SVC_FILTER = 41;
 
     // CLI item length
     public static final int CLI_ID_LENGTH = 30;

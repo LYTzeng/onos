@@ -114,6 +114,7 @@ import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_CIDR;
 import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.SRC;
 import static org.onosproject.k8snetworking.api.Constants.STAT_EGRESS_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_SVC_FILTER;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getBclassIpPrefixFromCidr;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.nodeIpGatewayIpMap;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.podByIp;
@@ -285,33 +286,88 @@ public class K8sServiceHandler {
         String fullSrcPodCidr = srcPodPrefix + B_CLASS_SUFFIX;
         String fullSrcNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
 
+        // Get Ext Ovs Set
+        Set<K8sNode> extOvsNodes = k8sNodeService.nodes(K8sNode.Type.EXTOVS);
+
+        // Get current K8S node from device Id from parameter
+        K8sNode k8sNode = k8sNodeService.node(deviceId);
+
         // src: POD -> dst: service (unNAT POD) grouping
-        setSrcDstCidrRules(deviceId, fullSrcPodCidr, serviceCidr, B_CLASS, null,
-                SHIFTED_IP_PREFIX, SRC, GROUPING_TABLE, SERVICE_TABLE,
-                PRIORITY_CT_RULE, install);
+        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, serviceCidr, B_CLASS, null,
+        //         SHIFTED_IP_PREFIX, SRC, GROUPING_TABLE, SERVICE_TABLE,
+        //         PRIORITY_CT_RULE, install);
         // src: POD (unNAT service) -> dst: shifted POD grouping
-        setSrcDstCidrRules(deviceId, fullSrcPodCidr, SHIFTED_IP_CIDR, B_CLASS, null,
-                srcPodPrefix, DST, GROUPING_TABLE, POD_TABLE, PRIORITY_CT_RULE, install);
+        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, SHIFTED_IP_CIDR, B_CLASS, null,
+        //         srcPodPrefix, DST, GROUPING_TABLE, POD_TABLE, PRIORITY_CT_RULE, install);
 
         // src: node -> dst: service (unNAT POD) grouping
-        setSrcDstCidrRules(deviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
-                null, null, null, GROUPING_TABLE, SERVICE_TABLE,
-                PRIORITY_CT_RULE, install);
+        // setSrcDstCidrRules(deviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
+        //         null, null, null, GROUPING_TABLE, SERVICE_TABLE,
+        //         PRIORITY_CT_RULE, install);
+        
+        // setSrcDstCidrRules(deviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
+        //         null, null, null, GROUPING_TABLE, SERVICE_TABLE,
+        //         PRIORITY_CT_RULE, install);
         // src: POD (unNAT service) -> dst: node grouping
-        setSrcDstCidrRules(deviceId, fullSrcPodCidr, fullSrcNodeCidr, A_CLASS,
-                null, null, null, GROUPING_TABLE, POD_TABLE,
-                PRIORITY_CT_RULE, install);
+        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, fullSrcNodeCidr, A_CLASS,
+        //         null, null, null, GROUPING_TABLE, POD_TABLE,
+        //         PRIORITY_CT_RULE, install);
 
-        k8sNetworkService.networks().forEach(n -> {
-            setSrcDstCidrRules(deviceId, fullSrcPodCidr, n.cidr(), B_CLASS,
-                    n.segmentId(), null, null, ROUTING_TABLE,
-                    STAT_EGRESS_TABLE, PRIORITY_INTER_ROUTING_RULE, install);
-        });
+        // k8sNetworkService.networks().forEach(n -> {
+        //     setSrcDstCidrRules(deviceId, fullSrcPodCidr, n.cidr(), B_CLASS,
+        //             n.segmentId(), null, null, ROUTING_TABLE,
+        //             STAT_EGRESS_TABLE, PRIORITY_INTER_ROUTING_RULE, install);
+        // });
 
         // setup load balancing rules using group table
-        k8sServiceService.services().stream()
-                .filter(s -> CLUSTER_IP.equals(s.getSpec().getType()))
-                .forEach(s -> setStatelessGroupFlowRules(deviceId, s, install));
+        // k8sServiceService.services().stream()
+        //         .filter(s -> CLUSTER_IP.equals(s.getSpec().getType()))
+        //         .forEach(s -> setStatelessGroupFlowRules(deviceId, s, install));
+
+
+        // [MOD]
+        for (K8sNode extOvs: extOvsNodes){
+            // Flow 41-1
+            TrafficSelector selector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(IpPrefix.valueOf(serviceCidr))
+                .matchIPSrc(IpPrefix.valueOf(fullSrcPodCidr))
+                .build();
+    
+            TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
+                .setEthDst(extOvs.intgBridgeMac())
+                .setEthSrc(k8sNode.intgBridgeMac())
+                .setOutput(k8sNode.extOvsPortNum());
+    
+            k8sFlowRuleService.setRule(
+                appId,
+                deviceId,
+                selector,
+                tBuilder.build(),
+                PRIORITY_CT_RULE,
+                INTG_SVC_FILTER,
+                install);
+            
+            // Flow 41-2
+            selector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(IpPrefix.valueOf(serviceCidr))
+                .matchInPort(PortNumber.LOCAL)
+                .build();
+    
+            tBuilder = DefaultTrafficTreatment.builder()
+                .setEthDst(extOvs.intgBridgeMac())
+                .setOutput(k8sNode.extOvsPortNum());
+    
+            k8sFlowRuleService.setRule(
+                appId,
+                deviceId,
+                selector,
+                tBuilder.build(),
+                PRIORITY_CT_RULE,
+                INTG_SVC_FILTER,
+                install);
+        }
     }
 
     private void setSrcDstCidrRules(DeviceId deviceId, String srcCidr,
@@ -622,6 +678,7 @@ public class K8sServiceHandler {
                 install);
     }
 
+    // Flow OLD-60-3
     private void setCidrRoutingRule(IpPrefix prefix, MacAddress mac,
                                     K8sNetwork network, boolean install) {
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
@@ -664,8 +721,8 @@ public class K8sServiceHandler {
     }
 
     private void setupServiceDefaultRule(K8sNetwork k8sNetwork, boolean install) {
-        setCidrRoutingRule(IpPrefix.valueOf(DEFAULT_SERVICE_IP_CIDR),
-                MacAddress.valueOf(SERVICE_FAKE_MAC_STR), k8sNetwork, install);
+        // setCidrRoutingRule(IpPrefix.valueOf(DEFAULT_SERVICE_IP_CIDR),
+        //         MacAddress.valueOf(SERVICE_FAKE_MAC_STR), k8sNetwork, install);
     }
 
     private void setStatefulGroupFlowRules(DeviceId deviceId, long ctState,

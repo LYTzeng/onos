@@ -146,8 +146,10 @@ public class K8sSwitchingGatewayHandler {
         log.info("Stopped");
     }
 
+    // T60
     private void setGatewayRule(K8sNetwork k8sNetwork, boolean install) {
         for (K8sNode node : k8sNodeService.completeNodes()) {
+            // Flow 60-1
             TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                     .matchEthType(Ethernet.TYPE_IPV4)
                     .matchIPDst(IpPrefix.valueOf(k8sNetwork.gatewayIp(),
@@ -157,19 +159,19 @@ public class K8sSwitchingGatewayHandler {
 
             if (node.hostname().equals(k8sNetwork.name())) {
                 tBuilder.setEthDst(node.intgBridgeMac())
-                        .setOutput(PortNumber.LOCAL);
-            } else {
-                PortNumber portNum = tunnelPortNumByNetId(k8sNetwork.networkId(),
-                        k8sNetworkService, node);
-                K8sNode localNode = k8sNodeService.node(k8sNetwork.name());
+                        .setOutput(node.extOvsPortNum());
+            } //else {
+            //     PortNumber portNum = tunnelPortNumByNetId(k8sNetwork.networkId(),
+            //             k8sNetworkService, node);
+            //     K8sNode localNode = k8sNodeService.node(k8sNetwork.name());
 
-                tBuilder.extension(buildExtension(
-                        deviceService,
-                        node.intgBridge(),
-                        localNode.dataIp().getIp4Address()),
-                        node.intgBridge())
-                        .setOutput(portNum);
-            }
+            //     tBuilder.extension(buildExtension(
+            //             deviceService,
+            //             node.intgBridge(),
+            //             localNode.dataIp().getIp4Address()),
+            //             node.intgBridge())
+            //             .setOutput(portNum);
+            // }
 
             k8sFlowRuleService.setRule(
                     appId,
@@ -180,25 +182,25 @@ public class K8sSwitchingGatewayHandler {
                     ROUTING_TABLE,
                     install);
 
-            if (node.hostname().equals(k8sNetwork.name())) {
-                sBuilder = DefaultTrafficSelector.builder()
-                        .matchInPort(PortNumber.LOCAL)
-                        .matchEthType(Ethernet.TYPE_IPV4)
-                        .matchIPDst(IpPrefix.valueOf(k8sNetwork.gatewayIp(),
-                                HOST_PREFIX));
+            // if (node.hostname().equals(k8sNetwork.name())) {
+            //     sBuilder = DefaultTrafficSelector.builder()
+            //             .matchInPort(PortNumber.LOCAL)
+            //             .matchEthType(Ethernet.TYPE_IPV4)
+            //             .matchIPDst(IpPrefix.valueOf(k8sNetwork.gatewayIp(),
+            //                     HOST_PREFIX));
 
-                tBuilder = DefaultTrafficTreatment.builder()
-                        .setOutput(node.intgToLocalPatchPortNum());
+            //     tBuilder = DefaultTrafficTreatment.builder()
+            //             .setOutput(node.intgToLocalPatchPortNum());
 
-                k8sFlowRuleService.setRule(
-                        appId,
-                        node.intgBridge(),
-                        sBuilder.build(),
-                        tBuilder.build(),
-                        PRIORITY_LOCAL_BRIDGE_RULE,
-                        ROUTING_TABLE,
-                        install);
-            }
+            //     k8sFlowRuleService.setRule(
+            //             appId,
+            //             node.intgBridge(),
+            //             sBuilder.build(),
+            //             tBuilder.build(),
+            //             PRIORITY_LOCAL_BRIDGE_RULE,
+            //             ROUTING_TABLE,
+            //             install);
+            // }
         }
     }
 

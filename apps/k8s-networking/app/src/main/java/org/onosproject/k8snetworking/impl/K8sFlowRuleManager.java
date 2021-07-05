@@ -73,9 +73,10 @@ import static org.onosproject.k8snetworking.api.Constants.STAT_INGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.VTAG_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.VTAP_EGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.VTAP_INGRESS_TABLE;
-import static org.onosproject.k8snetworking.api.Constants.INTG_INGRESS_TABLE;
-import static org.onosproject.k8snetworking.api.Constants.INTG_PORT_CLASSIFY_TABLE;
-import static org.onosproject.k8snetworking.api.Constants.INTG_ARP_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_INGRESS_TABLE;       // [MOD]
+import static org.onosproject.k8snetworking.api.Constants.INTG_PORT_CLASSIFY_TABLE; // [MOD]
+import static org.onosproject.k8snetworking.api.Constants.INTG_ARP_TABLE;           // [MOD]
+import static org.onosproject.k8snetworking.api.Constants.INTG_SVC_FILTER;          // [MOD]
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.tunnelPortNumByNetId;
 import static org.onosproject.k8snetworking.util.RulePopulatorUtil.buildExtension;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -232,45 +233,64 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
         DeviceId deviceId = k8sNode.intgBridge();
 
         // for inbound table transition
-        connectTables(deviceId, STAT_INGRESS_TABLE, VTAP_INGRESS_TABLE);
-        connectTables(deviceId, VTAP_INGRESS_TABLE, VTAG_TABLE);
+        // T0 -> T30
+        connectTables(deviceId, STAT_INGRESS_TABLE, VTAG_TABLE);
 
         // for vTag and ARP table transition
+        // T30 -> T35
         connectTables(deviceId, VTAG_TABLE, ARP_TABLE);
 
+        // T41 -> T60
+        connectTables(deviceId, INTG_SVC_FILTER, ROUTING_TABLE);
+
         // for jump and namespace table transition
-        connectTables(deviceId, JUMP_TABLE, NAMESPACE_TABLE);
+        // T40 -> T49
+        // connectTables(deviceId, JUMP_TABLE, NAMESPACE_TABLE);
 
         // for ARP and ACL table transition
-        connectTables(deviceId, ARP_TABLE, NAMESPACE_TABLE);
+        // T35 -> T49
+        // connectTables(deviceId, ARP_TABLE, NAMESPACE_TABLE);
 
         // for namespace table transition to grouping table
-        connectTables(deviceId, NAMESPACE_TABLE, GROUPING_TABLE);
+        // T49 -> T50
+        // connectTables(deviceId, NAMESPACE_TABLE, GROUPING_TABLE);
 
         // for grouping table transition to ACL table
-        connectTables(deviceId, GROUPING_TABLE, ACL_TABLE);
+        // T50 -> T55
+        // connectTables(deviceId, GROUPING_TABLE, ACL_TABLE);
 
         // for ACL table transition to routing table
-        connectTables(deviceId, ACL_TABLE, ROUTING_TABLE);
+        // T55 -> T60
+        // connectTables(deviceId, ACL_TABLE, ROUTING_TABLE);
 
         // for routing and outbound table transition
-        connectTables(deviceId, ROUTING_TABLE, STAT_EGRESS_TABLE);
+        // T60 -> T70
+        // connectTables(deviceId, ROUTING_TABLE, STAT_EGRESS_TABLE);
 
         // for outbound table transition
-        connectTables(deviceId, STAT_EGRESS_TABLE, VTAP_EGRESS_TABLE);
-        connectTables(deviceId, VTAP_EGRESS_TABLE, FORWARDING_TABLE);
+        // T70 -> T71 -> T80
+        // connectTables(deviceId, STAT_EGRESS_TABLE, VTAP_EGRESS_TABLE);
+        // connectTables(deviceId, VTAP_EGRESS_TABLE, FORWARDING_TABLE);
+
+        // [Mod] Simplifying this
+        // T60 -> T80
+        connectTables(deviceId, ROUTING_TABLE, FORWARDING_TABLE);
     }
 
     protected void initializeExtOvsPipeline(K8sNode node) {
         DeviceId deviceId = node.intgBridge();
 
-        // table 0 -> 30
+        // T0 -> T30
         connectTables(deviceId, INTG_INGRESS_TABLE, INTG_PORT_CLASSIFY_TABLE);
 
-        //table 30 -> 35
+        // T30 -> T35
         connectTables(deviceId, INTG_PORT_CLASSIFY_TABLE, INTG_ARP_TABLE);
+
+        // T50 -> T60
+        connectTables(deviceId, GROUPING_TABLE, ROUTING_TABLE);
     }
 
+    // Flow OLD-60-2
     private void setAnyRoutingRule(IpPrefix srcIpPrefix, MacAddress mac,
                                    K8sNetwork k8sNetwork) {
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
@@ -280,7 +300,7 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
 
         for (K8sNode node : k8sNodeService.completeNodes()) {
             TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
-                    .setTunnelId(Long.valueOf(k8sNetwork.segmentId()));
+                .setTunnelId(Long.valueOf(k8sNetwork.segmentId()));
 
             if (node.hostname().equals(k8sNetwork.name())) {
                 if (mac != null) {
@@ -314,8 +334,8 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
     }
 
     private void setupHostRoutingRule(K8sNetwork k8sNetwork) {
-        setAnyRoutingRule(IpPrefix.valueOf(
-                k8sNetwork.gatewayIp(), HOST_PREFIX), null, k8sNetwork);
+        // setAnyRoutingRule(IpPrefix.valueOf(
+        //         k8sNetwork.gatewayIp(), HOST_PREFIX), null, k8sNetwork);
     }
 
     private class InternalK8sNodeListener implements K8sNodeListener {

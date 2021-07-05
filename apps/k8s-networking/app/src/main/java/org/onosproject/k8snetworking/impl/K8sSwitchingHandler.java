@@ -69,11 +69,13 @@ import static org.onosproject.k8snetworking.api.Constants.K8S_NETWORKING_APP_ID;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_SWITCHING_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_TUNNEL_TAG_RULE;
 import static org.onosproject.k8snetworking.api.Constants.VTAG_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.GROUPING_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_MGMT_VLAN_RULE;
 import static org.onosproject.k8snetworking.api.Constants.STAT_INGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.INTG_INGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.INTG_PORT_CLASSIFY_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.INTG_ARP_TABLE;
+import static org.onosproject.k8snetworking.api.Constants.INTG_SVC_FILTER;
 import static org.onosproject.k8snetworking.api.Constants.EXT_OVS_KBR_INT_MGMT_MAC_STR; // [mod]
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getPropertyValue;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.tunnelPortNumByNetId;
@@ -162,6 +164,8 @@ public class K8sSwitchingHandler {
     /**
      * Configures the flow rules which are used for L2 packet switching.
      * Note that these rules will be inserted in switching table (table 5).
+     * 
+     * [MOD] This is modified to use routing instead of tunneling
      *
      * @param port      kubernetes port object
      * @param install   install flag, add the rule if true, remove it otherwise
@@ -172,7 +176,7 @@ public class K8sSwitchingHandler {
                 // TODO: need to handle IPv6 in near future
                 .matchEthType(Ethernet.TYPE_IPV4)
                 .matchIPDst(port.ipAddress().toIpPrefix())
-                .matchTunnelId(getVni(port))
+                // .matchTunnelId(getVni(port))
                 .build();
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
@@ -180,6 +184,7 @@ public class K8sSwitchingHandler {
                 .setOutput(port.portNumber())
                 .build();
 
+        // Flow 80-1
         k8sFlowRuleService.setRule(
                 appId,
                 port.deviceId(),
@@ -199,17 +204,21 @@ public class K8sSwitchingHandler {
         k8sNodeService.completeNodes().stream()
                 .filter(remoteNode -> !remoteNode.intgBridge().equals(localNode.intgBridge()))
                 .forEach(remoteNode -> {
-                    PortNumber portNum = tunnelPortNumByNetId(port.networkId(),
-                            k8sNetworkService, remoteNode);
+                    // PortNumber portNum = tunnelPortNumByNetId(port.networkId(),
+                    //         k8sNetworkService, remoteNode);
                     TrafficTreatment treatmentToRemote = DefaultTrafficTreatment.builder()
-                            .extension(buildExtension(
-                                    deviceService,
-                                    remoteNode.intgBridge(),
-                                    localNode.dataIp().getIp4Address()),
-                                    remoteNode.intgBridge())
-                            .setOutput(portNum)
+                            // .extension(buildExtension(
+                            //         deviceService,
+                            //         remoteNode.intgBridge(),
+                            //         localNode.dataIp().getIp4Address()),
+                            //         remoteNode.intgBridge())
+                            // .setOutput(portNum)
+                            .setEthSrc(localNode.intgBridgeMac())
+                            .setEthDst(localNode.extOvsMac())
+                            .setOutput(remoteNode.extOvsPortNum())
                             .build();
 
+                    // Flow 80-2
                     k8sFlowRuleService.setRule(
                             appId,
                             remoteNode.intgBridge(),
@@ -242,6 +251,8 @@ public class K8sSwitchingHandler {
      * Configures the flow rule which is for using VXLAN/GRE/GENEVE to tag the packet
      * based on the in_port number of a virtual instance.
      * Note that this rule will be inserted in vTag table.
+     * 
+     * [MOD INFO] This method is modified because we avoid using tunnel in the experiment
      *
      * @param port kubernetes port object
      * @param install install flag, add the rule if true, remove it otherwise
@@ -252,15 +263,17 @@ public class K8sSwitchingHandler {
                 .matchInPort(port.portNumber())
                 .build();
 
-        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
-                .setTunnelId(getVni(port));
+        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder();
+                // .setTunnelId(getVni(port));
 
         if (ethType == Ethernet.TYPE_ARP) {
             tBuilder.transition(ARP_TABLE);
         } else if (ethType == Ethernet.TYPE_IPV4) {
-            tBuilder.transition(JUMP_TABLE);
+            // tBuilder.transition(JUMP_TABLE);
+            tBuilder.transition(INTG_SVC_FILTER);
         }
 
+        // Flow 30-1
         k8sFlowRuleService.setRule(
                 appId,
                 port.deviceId(),
@@ -272,6 +285,7 @@ public class K8sSwitchingHandler {
     }
 
     private void setExtToIntgTunnelTagFlowRules(K8sNode k8sNode, boolean install) {
+        // TODO: This flow will be transferred to external OvS node
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
                 .matchInPort(k8sNode.intgToExtPatchPortNum())
@@ -303,8 +317,10 @@ public class K8sSwitchingHandler {
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
                 .setTunnelId(Long.valueOf(net.segmentId()))
-                .transition(JUMP_TABLE);
+                // .transition(JUMP_TABLE);
+                .transition(INTG_SVC_FILTER);
 
+        // Flow 30-2
         k8sFlowRuleService.setRule(
                 appId,
                 k8sNode.intgBridge(),
@@ -362,13 +378,14 @@ public class K8sSwitchingHandler {
             .setOutput(k8sNode.extOvsPortNum())
             .build();
 
+        // Flow 0-1
         k8sFlowRuleService.setRule(
             appId,
             k8sNode.intgBridge(),
             outboundCpFlowSelector,
             outboundCpFlowTreatment,
-            PRIORITY_MGMT_VLAN_RULE,
-            INTG_INGRESS_TABLE,
+            PRIORITY_MGMT_VLAN_RULE, 
+            STAT_INGRESS_TABLE,
             true);
 
         // ext ovs (from other k8s nodes) -> local k8s node
@@ -383,16 +400,60 @@ public class K8sSwitchingHandler {
             .setOutput(k8sNode.k8sMgmtVlanPortNum())
             .build();
 
+        // Flow 0-2
         k8sFlowRuleService.setRule(
             appId,
             k8sNode.intgBridge(),
             inboundCpFlowSelector,
             inboundCpFlowTreatment,
             PRIORITY_MGMT_VLAN_RULE,
-            INTG_INGRESS_TABLE,
+            STAT_INGRESS_TABLE,
             true);
 
         setExtOvsNodeMgmtVlanRules(k8sNode.dataIp());
+    }
+
+    private void setExtOvsIntfRules(K8sNode k8sNode) {
+        TrafficSelector selector = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchInPort(k8sNode.extOvsPortNum())
+            .build();
+
+        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
+            // .transition(JUMP_TABLE);
+            .transition(INTG_SVC_FILTER);
+
+        // Flow 30-3
+        k8sFlowRuleService.setRule(
+                appId,
+                k8sNode.intgBridge(),
+                selector,
+                tBuilder.build(),
+                PRIORITY_TUNNEL_TAG_RULE,
+                VTAG_TABLE,
+                true);
+
+        // EXTOVS Flow 30-1
+        k8sNodeService.nodes(K8sNode.Type.EXTOVS).forEach(node -> {
+            String dataIpStr = k8sNode.dataIp().toString();
+            String interfaceName = "eth" + dataIpStr.split("\\.")[3];
+            selector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchInPort(node.customIntgPortNum(interfaceName))
+                .build();
+
+            tBuilder = DefaultTrafficTreatment.builder()
+                .transition(GROUPING_TABLE);
+
+            k8sFlowRuleService.setRule(
+                appId,
+                node.intgBridge(),
+                selector,
+                tBuilder.build(),
+                PRIORITY_TUNNEL_TAG_RULE,
+                INTG_PORT_CLASSIFY_TABLE,
+                true);            
+        });
     }
            
     /**
@@ -416,6 +477,7 @@ public class K8sSwitchingHandler {
                 .setOutput(node.customIntgPortNum(interfaceName))
                 .build();
 
+            // EXTOVS Flow 0-1
             k8sFlowRuleService.setRule(
                 appId,
                 node.intgBridge(),
@@ -538,7 +600,8 @@ public class K8sSwitchingHandler {
 
             setExtToIntgTunnelTagFlowRules(k8sNode, true);
             setLocalTunnelTagFlowRules(k8sNode, true);
-            setK8sNodeMgmtVlanRules(k8sNode); // [Mod]
+            setK8sNodeMgmtVlanRules(k8sNode);   // [Mod]
+            setExtOvsIntfRules(k8sNode);        // [MOD]
         }
     }
 }
