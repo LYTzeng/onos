@@ -201,6 +201,7 @@ public class K8sSwitchingHandler {
                     port.deviceId());
             throw new IllegalStateException(error);
         }
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
         k8sNodeService.completeNodes().stream()
                 .filter(remoteNode -> !remoteNode.intgBridge().equals(localNode.intgBridge()))
                 .forEach(remoteNode -> {
@@ -214,7 +215,7 @@ public class K8sSwitchingHandler {
                             //         remoteNode.intgBridge())
                             // .setOutput(portNum)
                             .setEthSrc(localNode.intgBridgeMac())
-                            .setEthDst(localNode.extOvsMac())
+                            .setEthDst(extOvs.extOvsMac())
                             .setOutput(remoteNode.extOvsPortNum())
                             .build();
 

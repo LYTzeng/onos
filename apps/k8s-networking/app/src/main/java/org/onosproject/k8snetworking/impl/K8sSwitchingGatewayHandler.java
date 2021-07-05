@@ -149,7 +149,6 @@ public class K8sSwitchingGatewayHandler {
     // T60
     private void setGatewayRule(K8sNetwork k8sNetwork, boolean install) {
         for (K8sNode node : k8sNodeService.completeNodes()) {
-            // Flow 60-1
             TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                     .matchEthType(Ethernet.TYPE_IPV4)
                     .matchIPDst(IpPrefix.valueOf(k8sNetwork.gatewayIp(),
@@ -157,21 +156,26 @@ public class K8sSwitchingGatewayHandler {
 
             TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder();
 
+            // Flow 60-0
             if (node.hostname().equals(k8sNetwork.name())) {
                 tBuilder.setEthDst(node.intgBridgeMac())
                         .setOutput(PortNumber.LOCAL);
-            } //else {
-            //     PortNumber portNum = tunnelPortNumByNetId(k8sNetwork.networkId(),
-            //             k8sNetworkService, node);
-            //     K8sNode localNode = k8sNodeService.node(k8sNetwork.name());
+            } else { // Flow 60-1
+                K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
+                tBuilder.setEthDst(extOvs.intgBridgeMac())
+                    .setEthSrc(node.intgBridgeMac())
+                    .setOutput(node.extOvsPortNum());
+                // PortNumber portNum = tunnelPortNumByNetId(k8sNetwork.networkId(),
+                //         k8sNetworkService, node);
+                // K8sNode localNode = k8sNodeService.node(k8sNetwork.name());
 
-            //     tBuilder.extension(buildExtension(
-            //             deviceService,
-            //             node.intgBridge(),
-            //             localNode.dataIp().getIp4Address()),
-            //             node.intgBridge())
-            //             .setOutput(portNum);
-            // }
+                // tBuilder.extension(buildExtension(
+                //         deviceService,
+                //         node.intgBridge(),
+                //         localNode.dataIp().getIp4Address()),
+                //         node.intgBridge())
+                //         .setOutput(portNum);
+            }
 
             k8sFlowRuleService.setRule(
                     appId,
