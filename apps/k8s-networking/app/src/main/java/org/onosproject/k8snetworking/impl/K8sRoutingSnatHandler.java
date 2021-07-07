@@ -328,7 +328,7 @@ public class K8sRoutingSnatHandler {
             extOvs.intgBridge(),
             selector,
             treatment,
-            PRIORITY_STATEFUL_SNAT_RULE,
+            PRIORITY_EXTERNAL_ROUTING_RULE,
             ROUTING_TABLE,
             true);
     }

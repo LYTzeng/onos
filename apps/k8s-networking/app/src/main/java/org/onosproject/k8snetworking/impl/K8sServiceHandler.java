@@ -115,7 +115,9 @@ import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.SRC;
 import static org.onosproject.k8snetworking.api.Constants.STAT_EGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.INTG_SVC_FILTER;
+import static org.onosproject.k8snetworking.api.Constants.HOST_PREFIX;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getBclassIpPrefixFromCidr;
+import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getCclassIpPrefixFromCidr;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.nodeIpGatewayIpMap;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.podByIp;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.portNumberByName;
@@ -148,6 +150,7 @@ public class K8sServiceHandler {
     private static final String SERVICE_IP_NAT_MODE = "serviceIpNatMode";
     private static final String SERVICE_CIDR = "serviceCidr";
     private static final String NONE = "None";
+    private static final String C_CLASS_SUFFIX = ".0/24";
     private static final String B_CLASS_SUFFIX = ".0.0/16";
     private static final String A_CLASS_SUFFIX = ".0.0.0/8";
 
@@ -373,12 +376,12 @@ public class K8sServiceHandler {
 
         Set<K8sNode> k8sNodes = k8sNodeService.nodes();
         String shiftedDstPodCidr = shiftIpDomain(fullSrcPodCidr, SHIFTED_IP_PREFIX);
-        // Flow 40-3
+        // Flow 41-3
         for (K8sNode nodes: k8sNodes){
             // Install flows to remote nodes
             if (!nodes.intgBridge().equals(deviceId)){
-                setShiftedPodCidrRules(nodes.intgBridge(), shiftedDstPodCidr
-                    ,INTG_SVC_FILTER,nodes.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
+                setShiftedPodCidrRules(nodes.intgBridge(), shiftedDstPodCidr,
+                    INTG_SVC_FILTER, nodes.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
             }
         }
     }
@@ -421,10 +424,11 @@ public class K8sServiceHandler {
 
     private void setShiftedPodCidrRules(DeviceId deviceId, String dstCidr, int installTable, 
         PortNumber outputPort, int priority, boolean install) {
-            TrafficSelector selector = DefaultTrafficSelector.builder()
-                .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(dstCidr))
-                .build();
+
+        TrafficSelector selector = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchIPDst(IpPrefix.valueOf(dstCidr))
+            .build();
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder();
         tBuilder.setOutput(outputPort);
@@ -568,6 +572,7 @@ public class K8sServiceHandler {
         // }
     }
 
+    // EXTOVS Group Bucket
     private GroupBucket buildBuckets(DeviceId deviceId, String podIpStr, ServicePort sp) {
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
                 .setIpDst(IpAddress.valueOf(podIpStr));
@@ -705,6 +710,7 @@ public class K8sServiceHandler {
             tBuilder.setUdpSrc(TpPort.tpPort(servicePort));
         }
 
+        // EXTOVS Flow 53-1
         k8sFlowRuleService.setRule(
                 appId,
                 deviceId,
@@ -712,6 +718,36 @@ public class K8sServiceHandler {
                 tBuilder.build(),
                 priority,
                 installTable,
+                install);
+
+        String shiftedDstPodIp = shiftIpDomain(podIp, SHIFTED_IP_PREFIX);
+        String srcPodClassCPrefix = getCclassIpPrefixFromCidr(podIp);
+        String podCidr = srcPodClassCPrefix + C_CLASS_SUFFIX;
+
+        K8sNode node = k8sNodeService.completeNodes().filter(n -> n.podCidr().equals(podCidr)).findFirst().get();
+        String dataIpStr = node.dataIp().toString();
+        String interfaceName = "eth" + dataIpStr.split("\\.")[3];
+
+        K8sNode extOvs = k8sNodeService.node(deviceId);
+
+        sBuilder = DefaultTrafficSelector.builder()
+            .matchIpSrc(IpPrefix.valueOf(IpAddress.valueOf(shiftedDstPodIp), HOST_PREFIX))
+            .matchIpDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
+
+        tBuilder = DefaultTrafficTreatment.builder()
+            .setIpSrc(IpAddress.valueOf(serviceIp))
+            .setOutput(extOvs.customIntgPortNum(interfaceName));
+
+        // Install flows to external OvS to handle when SVC group bucket routes 
+        // the packet back to the same node
+        // EXTOVS Flow 60-1
+        k8sFlowRuleService.setRule(
+                appId,
+                deviceId,
+                sBuilder.build(),
+                tBuilder.build(),
+                PRIORITY_NAT_RULE,
+                ROUTING_TABLE,
                 install);
     }
 
