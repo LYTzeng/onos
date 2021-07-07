@@ -731,6 +731,7 @@ public class K8sServiceHandler {
         K8sNode extOvs = k8sNodeService.node(deviceId);
 
         TrafficSelector.Builder sBuilderSvcSamePod = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
             .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(shiftedDstPodIp), HOST_PREFIX))
             .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
 
