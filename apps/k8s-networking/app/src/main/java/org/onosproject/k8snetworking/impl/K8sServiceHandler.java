@@ -993,7 +993,7 @@ public class K8sServiceHandler {
             } else if (NAT_STATELESS.equals(serviceIpNatMode)) {
                 // Get Ext Ovs node
                 K8sNode extOvsNode = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
-                setStatelessGroupFlowRules(extOvsNode.intgBridge(), service, true));
+                setStatelessGroupFlowRules(extOvsNode.intgBridge(), service, true);
                 // k8sNodeService.completeNodes().forEach(n ->
                 //         setStatelessGroupFlowRules(n.intgBridge(), service, true));
             }
@@ -1014,7 +1014,7 @@ public class K8sServiceHandler {
             } else if (NAT_STATELESS.equals(serviceIpNatMode)) {
                 // Get Ext Ovs node
                 K8sNode extOvsNode = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
-                setStatelessGroupFlowRules(extOvsNode.intgBridge(), service, true));
+                setStatelessGroupFlowRules(extOvsNode.intgBridge(), service, true);
                 // k8sNodeService.completeNodes().forEach(n ->
                 //         setStatelessGroupFlowRules(n.intgBridge(), service, false));
             }
