@@ -120,6 +120,7 @@ import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.nodeIpGateway
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.podByIp;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.portNumberByName;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.tunnelPortNumByNetId;
+import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.shiftIpDomain;
 import static org.onosproject.k8snetworking.util.RulePopulatorUtil.CT_NAT_DST_FLAG;
 import static org.onosproject.k8snetworking.util.RulePopulatorUtil.buildExtension;
 import static org.onosproject.k8snetworking.util.RulePopulatorUtil.buildGroupBucket;
@@ -286,29 +287,29 @@ public class K8sServiceHandler {
         String fullSrcPodCidr = srcPodPrefix + B_CLASS_SUFFIX;
         String fullSrcNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
 
-        // Get Ext Ovs Set
-        Set<K8sNode> extOvsNodes = k8sNodeService.nodes(K8sNode.Type.EXTOVS);
+        // Get Ext Ovs node
+        K8sNode extOvsNode = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
+        DeviceId extOvsIntgBrDeviceId = extOvsNode.intgBridge();
 
         // Get current K8S node from device Id from parameter
         K8sNode k8sNode = k8sNodeService.node(deviceId);
 
         // src: POD -> dst: service (unNAT POD) grouping
-        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, serviceCidr, B_CLASS, null,
-        //         SHIFTED_IP_PREFIX, SRC, GROUPING_TABLE, SERVICE_TABLE,
-        //         PRIORITY_CT_RULE, install);
+        // EXTOVS Flow 50-1
+        setSrcDstCidrRules(extOvsIntgBrDeviceId, fullSrcPodCidr, serviceCidr, B_CLASS, null,
+                SHIFTED_IP_PREFIX, SRC, GROUPING_TABLE, SERVICE_TABLE,
+                PRIORITY_CT_RULE, install);
         // src: POD (unNAT service) -> dst: shifted POD grouping
-        // setSrcDstCidrRules(deviceId, fullSrcPodCidr, SHIFTED_IP_CIDR, B_CLASS, null,
-        //         srcPodPrefix, DST, GROUPING_TABLE, POD_TABLE, PRIORITY_CT_RULE, install);
+        // EXT%OVS Flow 50-2
+        setSrcDstCidrRules(extOvsIntgBrDeviceId, fullSrcPodCidr, SHIFTED_IP_CIDR, B_CLASS, null,
+                srcPodPrefix, DST, GROUPING_TABLE, POD_TABLE, PRIORITY_CT_RULE, install);
 
-        // src: node -> dst: service (unNAT POD) grouping
+        // // src: node -> dst: service (unNAT POD) grouping
         // setSrcDstCidrRules(deviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
         //         null, null, null, GROUPING_TABLE, SERVICE_TABLE,
         //         PRIORITY_CT_RULE, install);
         
-        // setSrcDstCidrRules(deviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
-        //         null, null, null, GROUPING_TABLE, SERVICE_TABLE,
-        //         PRIORITY_CT_RULE, install);
-        // src: POD (unNAT service) -> dst: node grouping
+        // // src: POD (unNAT service) -> dst: node grouping
         // setSrcDstCidrRules(deviceId, fullSrcPodCidr, fullSrcNodeCidr, A_CLASS,
         //         null, null, null, GROUPING_TABLE, POD_TABLE,
         //         PRIORITY_CT_RULE, install);
@@ -320,13 +321,13 @@ public class K8sServiceHandler {
         // });
 
         // setup load balancing rules using group table
-        // k8sServiceService.services().stream()
-        //         .filter(s -> CLUSTER_IP.equals(s.getSpec().getType()))
-        //         .forEach(s -> setStatelessGroupFlowRules(deviceId, s, install));
+        k8sServiceService.services().stream()
+                .filter(s -> CLUSTER_IP.equals(s.getSpec().getType()))
+                .forEach(s -> setStatelessGroupFlowRules(extOvsIntgBrDeviceId, s, install));
 
 
         // [MOD]
-        for (K8sNode extOvs: extOvsNodes){
+        // for (K8sNode extOvs: extOvsNodes){
             // Flow 41-1
             TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
@@ -335,7 +336,7 @@ public class K8sServiceHandler {
                 .build();
     
             TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
-                .setEthDst(extOvs.intgBridgeMac())
+                // .setEthDst(extOvs.intgBridgeMac())
                 .setEthSrc(k8sNode.intgBridgeMac())
                 .setOutput(k8sNode.extOvsPortNum());
     
@@ -356,7 +357,7 @@ public class K8sServiceHandler {
                 .build();
     
             tBuilder = DefaultTrafficTreatment.builder()
-                .setEthDst(extOvs.intgBridgeMac())
+                // .setEthDst(extOvs.intgBridgeMac())
                 .setOutput(k8sNode.extOvsPortNum());
     
             k8sFlowRuleService.setRule(
@@ -367,6 +368,18 @@ public class K8sServiceHandler {
                 PRIORITY_CT_RULE,
                 INTG_SVC_FILTER,
                 install);
+
+        // }
+
+        Set<K8sNode> k8sNodes = k8sNodeService.nodes();
+        String shiftedDstPodCidr = shiftIpDomain(fullSrcPodCidr, SHIFTED_IP_PREFIX);
+        // Flow 40-3
+        for (K8sNode k8sNode: k8sNodes){
+            // Install flows to remote nodes
+            if (!k8sNode.intgBridge().equals(deviceId)){
+                setShiftedPodCidrRules(k8sNode.intgBridge(), shiftedDstPodCidr
+                    ,INTG_SVC_FILTER,k8sNode.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
+            }
         }
     }
 
@@ -395,6 +408,26 @@ public class K8sServiceHandler {
         }
 
         tBuilder.transition(transitTable);
+
+        k8sFlowRuleService.setRule(
+                appId,
+                deviceId,
+                selector,
+                tBuilder.build(),
+                priority,
+                installTable,
+                install);
+    }
+
+    private void setShiftedPodCidrRules(DeviceId deviceId, String dstCidr, int installTable, 
+        PortNumber outputPort, int priority, boolean install) {
+            TrafficSelector selector = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(IpPrefix.valueOf(dstCidr))
+                .build();
+
+        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder();
+        tBuilder.setOutput(outputPort);
 
         k8sFlowRuleService.setRule(
                 appId,
@@ -475,12 +508,14 @@ public class K8sServiceHandler {
         Map<String, String> nodeIpGatewayIpMap =
                 nodeIpGatewayIpMap(k8sNodeService, k8sNetworkService);
 
-        for (K8sNode node : k8sNodeService.completeNodes()) {
+        K8sNode extOvsNode = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
+
+        // for (K8sNode node : k8sNodeService.completeNodes()) {
             spEpasMap.forEach((sp, epas) -> {
                 List<GroupBucket> bkts = Lists.newArrayList();
 
                 for (String ip : epas) {
-                    GroupBucket bkt = buildBuckets(node.intgBridge(),
+                    GroupBucket bkt = buildBuckets(extOvsNode.intgBridge(),
                             nodeIpGatewayIpMap.getOrDefault(ip, ip), sp);
 
                     if (bkt == null) {
@@ -503,7 +538,7 @@ public class K8sServiceHandler {
                 int groupId = svcStr.hashCode();
 
                 if (bkts.size() > 0) {
-                    k8sGroupRuleService.setBuckets(appId, node.intgBridge(), groupId, bkts);
+                    k8sGroupRuleService.setBuckets(appId, extOvsNode.intgBridge(), groupId, bkts);
                 }
             });
 
@@ -522,14 +557,15 @@ public class K8sServiceHandler {
                         }
 
                         if (targetPort != 0) {
-                            setUnshiftDomainRules(node.intgBridge(), POD_TABLE,
+                            // EXTOVS Flow 53-1
+                            setUnshiftDomainRules(extOvsNode.intgBridge(), POD_TABLE,
                                     PRIORITY_NAT_RULE, serviceIp, sp.getPort(),
                                     sp.getProtocol(), podIp,
                                     targetPort, install);
                         }
                     })
             );
-        }
+        // }
     }
 
     private GroupBucket buildBuckets(DeviceId deviceId, String podIpStr, ServicePort sp) {
@@ -555,13 +591,14 @@ public class K8sServiceHandler {
         }
 
         ExtensionTreatment resubmitTreatment = buildResubmitExtension(
-                deviceService.getDevice(deviceId), ACL_TABLE);
+                deviceService.getDevice(deviceId), ROUTING_TABLE);
         tBuilder.extension(resubmitTreatment, deviceId);
 
         // TODO: need to adjust group bucket weight by considering POD locality
         return buildGroupBucket(tBuilder.build(), SELECT, (short) -1);
     }
 
+    // EXTOVS Flow 52-1
     private synchronized void setStatelessGroupFlowRules(DeviceId deviceId,
                                                          Service service,
                                                          boolean install) {
@@ -660,7 +697,7 @@ public class K8sServiceHandler {
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
                 .setIpSrc(IpAddress.valueOf(serviceIp))
-                .transition(ACL_TABLE);
+                .transition(ROUTING_TABLE);
 
         if (TCP.equals(protocol)) {
             tBuilder.setTcpSrc(TpPort.tpPort(servicePort));
@@ -954,8 +991,11 @@ public class K8sServiceHandler {
                         setStatefulGroupFlowRules(n.intgBridge(), ctTrackNew,
                                 ctMaskTrackNew, service, true));
             } else if (NAT_STATELESS.equals(serviceIpNatMode)) {
-                k8sNodeService.completeNodes().forEach(n ->
-                        setStatelessGroupFlowRules(n.intgBridge(), service, true));
+                // Get Ext Ovs node
+                K8sNode extOvsNode = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
+                setStatelessGroupFlowRules(extOvsNode.intgBridge(), service, true));
+                // k8sNodeService.completeNodes().forEach(n ->
+                //         setStatelessGroupFlowRules(n.intgBridge(), service, true));
             }
         }
 
@@ -972,8 +1012,11 @@ public class K8sServiceHandler {
                         setStatefulGroupFlowRules(n.intgBridge(), ctTrackNew,
                                 ctMaskTrackNew, service, false));
             } else if (NAT_STATELESS.equals(serviceIpNatMode)) {
-                k8sNodeService.completeNodes().forEach(n ->
-                        setStatelessGroupFlowRules(n.intgBridge(), service, false));
+                // Get Ext Ovs node
+                K8sNode extOvsNode = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findAny().get();
+                setStatelessGroupFlowRules(extOvsNode.intgBridge(), service, true));
+                // k8sNodeService.completeNodes().forEach(n ->
+                //         setStatelessGroupFlowRules(n.intgBridge(), service, false));
             }
         }
     }

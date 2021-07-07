@@ -314,7 +314,7 @@ public class K8sRoutingSnatHandler {
         TrafficSelector selector = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
             .matchIPDst(IpPrefix.valueOf(k8sNode.podCidr()))
-            .matchEthDst(extOvs.intgBridgeMac())
+            // .matchEthDst(extOvs.intgBridgeMac())
             .build();
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
