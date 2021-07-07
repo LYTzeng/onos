@@ -730,11 +730,11 @@ public class K8sServiceHandler {
 
         K8sNode extOvs = k8sNodeService.node(deviceId);
 
-        sBuilder = DefaultTrafficSelector.builder()
+        TrafficSelector.Builder sBuilderSvcSamePod = DefaultTrafficSelector.builder()
             .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(shiftedDstPodIp), HOST_PREFIX))
             .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
 
-        tBuilder = DefaultTrafficTreatment.builder()
+        TrafficTreatment.Builder tBuilderSvcSamePod = DefaultTrafficTreatment.builder()
             .setIpSrc(IpAddress.valueOf(serviceIp))
             .setOutput(extOvs.customIntgPortNum(interfaceName));
 
@@ -744,8 +744,8 @@ public class K8sServiceHandler {
         k8sFlowRuleService.setRule(
                 appId,
                 deviceId,
-                sBuilder.build(),
-                tBuilder.build(),
+                sBuilderSvcSamePod.build(),
+                tBuilderSvcSamePod.build(),
                 PRIORITY_NAT_RULE,
                 ROUTING_TABLE,
                 install);
