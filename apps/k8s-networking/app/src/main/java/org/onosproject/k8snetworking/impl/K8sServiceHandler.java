@@ -724,15 +724,15 @@ public class K8sServiceHandler {
         String srcPodClassCPrefix = getCclassIpPrefixFromCidr(podIp);
         String podCidr = srcPodClassCPrefix + C_CLASS_SUFFIX;
 
-        K8sNode node = k8sNodeService.completeNodes().filter(n -> n.podCidr().equals(podCidr)).findFirst().get();
+        K8sNode node = k8sNodeService.completeNodes().stream().filter(n -> n.podCidr().equals(podCidr)).findFirst().get();
         String dataIpStr = node.dataIp().toString();
         String interfaceName = "eth" + dataIpStr.split("\\.")[3];
 
         K8sNode extOvs = k8sNodeService.node(deviceId);
 
         sBuilder = DefaultTrafficSelector.builder()
-            .matchIpSrc(IpPrefix.valueOf(IpAddress.valueOf(shiftedDstPodIp), HOST_PREFIX))
-            .matchIpDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
+            .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(shiftedDstPodIp), HOST_PREFIX))
+            .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
 
         tBuilder = DefaultTrafficTreatment.builder()
             .setIpSrc(IpAddress.valueOf(serviceIp))
