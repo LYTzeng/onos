@@ -374,11 +374,11 @@ public class K8sServiceHandler {
         Set<K8sNode> k8sNodes = k8sNodeService.nodes();
         String shiftedDstPodCidr = shiftIpDomain(fullSrcPodCidr, SHIFTED_IP_PREFIX);
         // Flow 40-3
-        for (K8sNode k8sNode: k8sNodes){
+        for (K8sNode nodes: k8sNodes){
             // Install flows to remote nodes
-            if (!k8sNode.intgBridge().equals(deviceId)){
-                setShiftedPodCidrRules(k8sNode.intgBridge(), shiftedDstPodCidr
-                    ,INTG_SVC_FILTER,k8sNode.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
+            if (!nodes.intgBridge().equals(deviceId)){
+                setShiftedPodCidrRules(nodes.intgBridge(), shiftedDstPodCidr
+                    ,INTG_SVC_FILTER,nodes.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
             }
         }
     }
