@@ -382,9 +382,9 @@ public class K8sServiceHandler {
         for (K8sNode node: k8sNodes){
             // Flow 41-3
             // Install flows to remote nodes
-            if (!nodes.intgBridge().equals(deviceId)){
-                setShiftedPodCidrRules(nodes.intgBridge(), shiftedDstPodCidr,
-                    INTG_SVC_FILTER, nodes.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
+            if (!node.intgBridge().equals(deviceId)){
+                setShiftedPodCidrRules(node.intgBridge(), shiftedDstPodCidr,
+                    INTG_SVC_FILTER, node.extOvsPortNum(), PRIORITY_CIDR_RULE, install);
             }
 
             // Flow 41-4
