@@ -629,7 +629,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
             log.error("Exception caused during init state checking...");
         }
         
-        return node.intgBridge() != null && &&
+        return node.intgBridge() != null &&
             deviceService.isAvailable(node.intgBridge());
     }
 
