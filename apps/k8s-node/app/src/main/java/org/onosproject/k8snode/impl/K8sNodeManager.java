@@ -238,13 +238,11 @@ public class K8sNodeManager
                 extNode = intNode;
                 checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
                         NOT_DUPLICATED_MSG, extNode.extBridge());
+                localNode = extNode;
             }
-        }
-
-        // TODO: Remove useless local bridge in the future
-        DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
-
-        if (!intNode.type().equals(K8sNode.Type.EXTOVS)){
+        } else {
+            // TODO: Remove useless local bridge in the future
+            DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
             if (intNode.localBridge() == null) {
                 localNode = intNode.updateLocalBridge(existLocalBridge);
                 checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
@@ -254,8 +252,7 @@ public class K8sNodeManager
                 checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
                         NOT_DUPLICATED_MSG, localNode.localBridge());
             }
-        } else {
-            localNode = extNode;
+            
         }
 
         nodeStore.updateNode(localNode);
