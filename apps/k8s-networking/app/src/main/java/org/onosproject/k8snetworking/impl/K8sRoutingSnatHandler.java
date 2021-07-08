@@ -125,7 +125,6 @@ public class K8sRoutingSnatHandler {
     private ApplicationId appId;
     private NodeId localNodeId;
 
-    K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
 
     @Activate
     protected void activate() {
@@ -203,6 +202,7 @@ public class K8sRoutingSnatHandler {
 
     private void setSnatDownstreamRule(K8sNode k8sNode,
                                        boolean install) {
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         DeviceId deviceId = extOvs.extBridge();
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
@@ -234,7 +234,7 @@ public class K8sRoutingSnatHandler {
     // EXTOVS kbr-ex 0-3
     private void setSnatUpstreamRule(K8sNode k8sNode,
                                      boolean install) {
-
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         K8sNetwork net = k8sNetworkService.network(k8sNode.hostname());
 
         if (net == null) {
@@ -277,6 +277,7 @@ public class K8sRoutingSnatHandler {
     }
 
     private void setExtIntfArpRule(K8sNode k8sNode, boolean install) {
+            K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         // k8sNodeService.completeNodes().forEach(n -> {
             Device device = deviceService.getDevice(extOvs.extBridge());
             TrafficSelector selector = DefaultTrafficSelector.builder()

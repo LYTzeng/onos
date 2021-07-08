@@ -100,7 +100,6 @@ public class K8sRoutingArpHandler {
 
     private final PacketProcessor packetProcessor = new InternalPacketProcessor();
 
-    K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
 
     @Activate
     protected void activate() {
@@ -202,6 +201,7 @@ public class K8sRoutingArpHandler {
     }
 
     private void setArpReplyRule(K8sNode k8sNode, boolean install) {
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_ARP)
                 .matchArpOp(ARP.OP_REPLY)
@@ -224,6 +224,7 @@ public class K8sRoutingArpHandler {
     }
 
     private void setPodArpRequestRule(K8sNode k8sNode, boolean install) {
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchInPort(extOvs.extToIntgPatchPortNum())
                 .matchEthType(Ethernet.TYPE_ARP)
@@ -246,6 +247,7 @@ public class K8sRoutingArpHandler {
     }
 
     private void setPodArpReplyRule(K8sNode k8sNode, boolean install) {
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchInPort(extOvs.extBridgePortNum())
                 .matchEthType(Ethernet.TYPE_ARP)

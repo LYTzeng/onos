@@ -140,7 +140,6 @@ public class K8sNodePortHandler {
     private ApplicationId appId;
     private NodeId localNodeId;
 
-    K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
 
     @Activate
     protected void activate() {
@@ -294,6 +293,7 @@ public class K8sNodePortHandler {
         String protocol = servicePort.getProtocol();
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         DeviceId deviceId = extOvs.extBridge();
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
@@ -340,6 +340,7 @@ public class K8sNodePortHandler {
         String protocol = servicePort.getProtocol();
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         DeviceId deviceId = extOvs.extBridge();
 
         String extBridgeIp = extOvs.extBridgeIp().toString();
@@ -404,6 +405,7 @@ public class K8sNodePortHandler {
         String protocol = servicePort.getProtocol();
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
         DeviceId deviceId = extOvs.extBridge();
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
