@@ -166,6 +166,7 @@ public class DefaultK8sApiConfigHandler {
             .type(nodeType)
             .state(EXT_OVS_CREATED)
             .extBridgeIp(extBridgeIp)
+            .extGatewayIp(extBridgeIp)
             .podCidr(EXT_OVS_FAKE_POD_CIDR)
             .build();
     }
