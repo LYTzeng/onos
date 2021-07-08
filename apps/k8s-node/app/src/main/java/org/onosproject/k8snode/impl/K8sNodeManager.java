@@ -189,7 +189,7 @@ public class K8sNodeManager
         if (node.localBridge() == null) {
             String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
             checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
-            localNode = extNode.updateLocalBridge(DeviceId.deviceId(deviceIdStr));
+            localNode = intNode.updateLocalBridge(DeviceId.deviceId(deviceIdStr));
             checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
                     NOT_DUPLICATED_MSG, localNode.localBridge());
         } else {
@@ -242,8 +242,8 @@ public class K8sNodeManager
         // TODO: Remove useless local bridge in the future
         DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
 
-        if (extNode.localBridge() == null) {
-            localNode = extNode.updateLocalBridge(existLocalBridge);
+        if (intNode.localBridge() == null) {
+            localNode = intNode.updateLocalBridge(existLocalBridge);
             checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
                     NOT_DUPLICATED_MSG, localNode.localBridge());
         } else {
