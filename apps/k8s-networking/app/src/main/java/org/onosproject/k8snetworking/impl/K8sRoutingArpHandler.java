@@ -100,6 +100,8 @@ public class K8sRoutingArpHandler {
 
     private final PacketProcessor packetProcessor = new InternalPacketProcessor();
 
+    K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+
     @Activate
     protected void activate() {
         appId = coreService.registerApplication(K8S_NETWORKING_APP_ID);
@@ -203,7 +205,7 @@ public class K8sRoutingArpHandler {
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_ARP)
                 .matchArpOp(ARP.OP_REPLY)
-                .matchArpSpa(Ip4Address.valueOf(k8sNode.extGatewayIp().toString()))
+                .matchArpSpa(Ip4Address.valueOf(extOvs.extGatewayIp().toString()))
                 .build();
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
@@ -212,7 +214,7 @@ public class K8sRoutingArpHandler {
 
         k8sFlowRuleService.setRule(
                 appId,
-                k8sNode.extBridge(),
+                extOvs.extBridge(),
                 selector,
                 treatment,
                 PRIORITY_ARP_REPLY_RULE,
@@ -223,18 +225,18 @@ public class K8sRoutingArpHandler {
 
     private void setPodArpRequestRule(K8sNode k8sNode, boolean install) {
         TrafficSelector selector = DefaultTrafficSelector.builder()
-                .matchInPort(k8sNode.extToIntgPatchPortNum())
+                .matchInPort(extOvs.extToIntgPatchPortNum())
                 .matchEthType(Ethernet.TYPE_ARP)
                 .matchArpOp(ARP.OP_REQUEST)
                 .build();
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
-                .setOutput(k8sNode.extBridgePortNum())
+                .setOutput(extOvs.extBridgePortNum())
                 .build();
 
         k8sFlowRuleService.setRule(
                 appId,
-                k8sNode.extBridge(),
+                extOvs.extBridge(),
                 selector,
                 treatment,
                 PRIORITY_ARP_POD_RULE,
@@ -245,18 +247,18 @@ public class K8sRoutingArpHandler {
 
     private void setPodArpReplyRule(K8sNode k8sNode, boolean install) {
         TrafficSelector selector = DefaultTrafficSelector.builder()
-                .matchInPort(k8sNode.extBridgePortNum())
+                .matchInPort(extOvs.extBridgePortNum())
                 .matchEthType(Ethernet.TYPE_ARP)
                 .matchArpOp(ARP.OP_REPLY)
                 .build();
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
-                .setOutput(k8sNode.extToIntgPatchPortNum())
+                .setOutput(extOvs.extToIntgPatchPortNum())
                 .build();
 
         k8sFlowRuleService.setRule(
                 appId,
-                k8sNode.extBridge(),
+                extOvs.extBridge(),
                 selector,
                 treatment,
                 PRIORITY_ARP_POD_RULE,

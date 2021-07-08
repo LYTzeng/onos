@@ -125,6 +125,8 @@ public class K8sRoutingSnatHandler {
     private ApplicationId appId;
     private NodeId localNodeId;
 
+    K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+
     @Activate
     protected void activate() {
         appId = coreService.registerApplication(K8S_NETWORKING_APP_ID);
@@ -201,11 +203,11 @@ public class K8sRoutingSnatHandler {
 
     private void setSnatDownstreamRule(K8sNode k8sNode,
                                        boolean install) {
-        DeviceId deviceId = k8sNode.extBridge();
+        DeviceId deviceId = extOvs.extBridge();
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(k8sNode.extBridgeIp(), HOST_PREFIX));
+                .matchIPDst(IpPrefix.valueOf(extOvs.extBridgeIp(), HOST_PREFIX));
 
         ExtensionTreatment natTreatment = RulePopulatorUtil
                 .niciraConnTrackTreatmentBuilder(driverService, deviceId)
@@ -229,6 +231,7 @@ public class K8sRoutingSnatHandler {
                 install);
     }
 
+    // EXTOVS kbr-ex 0-3
     private void setSnatUpstreamRule(K8sNode k8sNode,
                                      boolean install) {
 
@@ -240,7 +243,7 @@ public class K8sRoutingSnatHandler {
 
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchInPort(k8sNode.extToIntgPatchPortNum())
+                .matchInPort(extOvs.extToIntgPatchPortNum())
                 .matchEthDst(DEFAULT_GATEWAY_MAC)
                 .build();
 
@@ -248,19 +251,19 @@ public class K8sRoutingSnatHandler {
 
         if (install) {
             ExtensionTreatment natTreatment = RulePopulatorUtil
-                    .niciraConnTrackTreatmentBuilder(driverService, k8sNode.extBridge())
+                    .niciraConnTrackTreatmentBuilder(driverService, extOvs.extBridge())
                     .commit(true)
                     .natFlag(CT_NAT_SRC_FLAG)
                     .natAction(true)
-                    .natIp(k8sNode.extBridgeIp())
+                    .natIp(extOvs.extBridgeIp())
                     .natPortMin(TpPort.tpPort(TP_PORT_MINIMUM_NUM))
                     .natPortMax(TpPort.tpPort(TP_PORT_MAXIMUM_NUM))
                     .build();
 
-            tBuilder.extension(natTreatment, k8sNode.extBridge())
-                    .setEthSrc(k8sNode.extBridgeMac())
+            tBuilder.extension(natTreatment, extOvs.extBridge())
+                    .setEthSrc(extOvs.extBridgeMac())
                     .setEthDst(k8sNode.extGatewayMac())
-                    .setOutput(k8sNode.extBridgePortNum());
+                    .setOutput(extOvs.extBridgePortNum());
         }
 
         k8sFlowRuleService.setRule(
@@ -274,12 +277,12 @@ public class K8sRoutingSnatHandler {
     }
 
     private void setExtIntfArpRule(K8sNode k8sNode, boolean install) {
-        k8sNodeService.completeNodes().forEach(n -> {
-            Device device = deviceService.getDevice(n.extBridge());
+        // k8sNodeService.completeNodes().forEach(n -> {
+            Device device = deviceService.getDevice(extOvs.extBridge());
             TrafficSelector selector = DefaultTrafficSelector.builder()
                     .matchEthType(Ethernet.TYPE_ARP)
                     .matchArpOp(ARP.OP_REQUEST)
-                    .matchArpTpa(Ip4Address.valueOf(k8sNode.extBridgeIp().toString()))
+                    .matchArpTpa(Ip4Address.valueOf(extOvs.extBridgeIp().toString()))
                     .build();
 
             TrafficTreatment treatment = DefaultTrafficTreatment.builder()
@@ -287,21 +290,21 @@ public class K8sRoutingSnatHandler {
                     .extension(buildMoveEthSrcToDstExtension(device), device.id())
                     .extension(buildMoveArpShaToThaExtension(device), device.id())
                     .extension(buildMoveArpSpaToTpaExtension(device), device.id())
-                    .setEthSrc(k8sNode.extBridgeMac())
-                    .setArpSha(k8sNode.extBridgeMac())
-                    .setArpSpa(Ip4Address.valueOf(k8sNode.extBridgeIp().toString()))
+                    .setEthSrc(extOvs.extBridgeMac())
+                    .setArpSha(extOvs.extBridgeMac())
+                    .setArpSpa(Ip4Address.valueOf(extOvs.extBridgeIp().toString()))
                     .setOutput(PortNumber.IN_PORT)
                     .build();
 
             k8sFlowRuleService.setRule(
                     appId,
-                    n.extBridge(),
+                    extOvs.extBridge(),
                     selector,
                     treatment,
                     PRIORITY_STATEFUL_SNAT_RULE,
                     EXT_ENTRY_TABLE,
                     install);
-        });
+        // });
     }
 
     // Flow EXTOVS 60-2
@@ -369,7 +372,7 @@ public class K8sRoutingSnatHandler {
             }
 
             setExtIntfArpRule(k8sNode, true);
-            setSnatDownstreamRule(k8sNode, true);
+            // setSnatDownstreamRule(k8sNode, true);
             setContainerToExtRule(k8sNode, true);
             setExtOvsRoutingRules(k8sNode);
         }

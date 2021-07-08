@@ -140,6 +140,8 @@ public class K8sNodePortHandler {
     private ApplicationId appId;
     private NodeId localNodeId;
 
+    K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+
     @Activate
     protected void activate() {
         appId = coreService.registerApplication(K8S_NETWORKING_APP_ID);
@@ -169,7 +171,7 @@ public class K8sNodePortHandler {
             setNodeToServiceRules(k8sNode, clusterIp, servicePort, install);
             setServiceToNodeLocalRules(k8sNode, clusterIp, servicePort, install);
             setServiceToNodeRemoteRules(k8sNode, clusterIp, servicePort, install);
-            setExtToIngrRules(k8sNode, servicePort, install);
+        //     setExtToIngrRules(k8sNode, servicePort, install);
         }
 
         k8sNodeService.completeNodes().forEach(n -> {
@@ -284,6 +286,7 @@ public class K8sNodePortHandler {
                 install);
     }
 
+    // EXTOVS kbr-ex Flow 0-1
     private void setNodeToServiceRules(K8sNode k8sNode,
                                        String clusterIp,
                                        ServicePort servicePort,
@@ -291,11 +294,11 @@ public class K8sNodePortHandler {
         String protocol = servicePort.getProtocol();
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
-        DeviceId deviceId = k8sNode.extBridge();
+        DeviceId deviceId = extOvs.extBridge();
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPDst(IpPrefix.valueOf(k8sNode.extBridgeIp(), HOST_CIDR));
+                .matchIPDst(IpPrefix.valueOf(extOvs.extBridgeIp(), HOST_CIDR));
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
                 .setIpDst(IpAddress.valueOf(clusterIp));
@@ -316,11 +319,12 @@ public class K8sNodePortHandler {
         ExtensionTreatment loadTreatment = buildLoadExtension(
                 deviceService.getDevice(deviceId), B_CLASS, SRC, prefix);
         tBuilder.extension(loadTreatment, deviceId)
-                .setOutput(k8sNode.extToIntgPatchPortNum());
+                .setOutput(extOvs.extToIntgPatchPortNum());
 
         k8sFlowRuleService.setRule(
                 appId,
-                k8sNode.extBridge(),
+                // k8sNode.extBridge(),
+                extOvs.extBridge(),
                 sBuilder.build(),
                 tBuilder.build(),
                 PRIORITY_NODE_PORT_RULE,
@@ -328,6 +332,7 @@ public class K8sNodePortHandler {
                 install);
     }
 
+    // EXTOVS kbr-ex 0-2
     private void setServiceToNodeLocalRules(K8sNode k8sNode,
                                             String clusterIp,
                                             ServicePort servicePort,
@@ -335,9 +340,9 @@ public class K8sNodePortHandler {
         String protocol = servicePort.getProtocol();
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
-        DeviceId deviceId = k8sNode.extBridge();
+        DeviceId deviceId = extOvs.extBridge();
 
-        String extBridgeIp = k8sNode.extBridgeIp().toString();
+        String extBridgeIp = extOvs.extBridgeIp().toString();
         String extBridgePrefix = getBclassIpPrefixFromCidr(extBridgeIp);
 
         String podCidr = k8sNetworkService.network(k8sNode.hostname()).cidr();
@@ -351,13 +356,13 @@ public class K8sNodePortHandler {
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchInPort(k8sNode.extToIntgPatchPortNum())
+                .matchInPort(extOvs.extToIntgPatchPortNum())
                 .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(clusterIp), HOST_CIDR))
                 .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(shiftedIp), HOST_CIDR));
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
-                .setIpSrc(k8sNode.extBridgeIp())
-                .setEthSrc(k8sNode.extBridgeMac());
+                .setIpSrc(extOvs.extBridgeIp())
+                .setEthSrc(extOvs.extBridgeMac());
 
         if (TCP.equals(protocol)) {
             sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
@@ -369,7 +374,7 @@ public class K8sNodePortHandler {
             tBuilder.setUdpSrc(TpPort.tpPort(nodePort));
         }
 
-        String gatewayIp = k8sNode.extGatewayIp().toString();
+        String gatewayIp = extOvs.extGatewayIp().toString();
         String gatewayPrefix = getBclassIpPrefixFromCidr(gatewayIp);
 
         if (gatewayPrefix == null) {
@@ -391,6 +396,7 @@ public class K8sNodePortHandler {
                 install);
     }
 
+    // EXTOVS kbr-ex 0-4
     private void setServiceToNodeRemoteRules(K8sNode k8sNode,
                                              String clusterIp,
                                              ServicePort servicePort,
@@ -398,16 +404,16 @@ public class K8sNodePortHandler {
         String protocol = servicePort.getProtocol();
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
-        DeviceId deviceId = k8sNode.extBridge();
+        DeviceId deviceId = extOvs.extBridge();
 
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
-                .matchInPort(k8sNode.extToIntgPatchPortNum())
+                .matchInPort(extOvs.extToIntgPatchPortNum())
                 .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(clusterIp), HOST_CIDR));
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
-                .setIpSrc(k8sNode.extBridgeIp())
-                .setEthSrc(k8sNode.extBridgeMac());
+                .setIpSrc(extOvs.extBridgeIp())
+                .setEthSrc(extOvs.extBridgeMac());
 
         if (TCP.equals(protocol)) {
             sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
@@ -419,7 +425,7 @@ public class K8sNodePortHandler {
             tBuilder.setUdpSrc(TpPort.tpPort(nodePort));
         }
 
-        String gatewayIp = k8sNode.extGatewayIp().toString();
+        String gatewayIp = extOvs.extGatewayIp().toString();
         String prefix = getBclassIpPrefixFromCidr(gatewayIp);
 
         if (prefix == null) {
@@ -429,7 +435,7 @@ public class K8sNodePortHandler {
         ExtensionTreatment loadTreatment = buildLoadExtension(
                 deviceService.getDevice(deviceId), B_CLASS, DST, prefix);
         tBuilder.extension(loadTreatment, deviceId)
-                .setOutput(k8sNode.extBridgePortNum());
+                .setOutput(extOvs.extBridgePortNum());
 
         k8sFlowRuleService.setRule(
                 appId,
