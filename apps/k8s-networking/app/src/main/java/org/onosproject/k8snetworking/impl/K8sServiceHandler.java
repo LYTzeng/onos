@@ -310,13 +310,13 @@ public class K8sServiceHandler {
 
         // src: node -> dst: service (unNAT POD) grouping
         // EXTOVS Flow 50-3
-        setSrcDstCidrRules(extOvsExtBrDeviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
+        setSrcDstCidrRules(extOvsIntgBrDeviceId, fullSrcNodeCidr, serviceCidr, A_CLASS,
                 null, null, null, GROUPING_TABLE, SERVICE_TABLE,
                 PRIORITY_CT_RULE, install);
         
         // src: POD (unNAT service) -> dst: node grouping
         // EXTOVS Flow 50-4
-        setSrcDstCidrRules(extOvsExtBrDeviceId, fullSrcPodCidr, fullSrcNodeCidr, A_CLASS,
+        setSrcDstCidrRules(extOvsIntgBrDeviceId, fullSrcPodCidr, fullSrcNodeCidr, A_CLASS,
                 null, null, null, GROUPING_TABLE, POD_TABLE,
                 PRIORITY_CT_RULE, install);
 
