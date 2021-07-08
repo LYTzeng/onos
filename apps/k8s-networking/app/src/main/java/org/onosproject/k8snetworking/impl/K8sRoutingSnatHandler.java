@@ -348,18 +348,10 @@ public class K8sRoutingSnatHandler {
             K8sNode k8sNode = event.subject();
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
-                        // TODO: See if we need to do something here
-                    } else {
-                        eventExecutor.execute(() -> processNodeCompletion(k8sNode));
-                    }
+                    eventExecutor.execute(() -> processNodeCompletion(k8sNode));
                     break;
                 case K8S_NODE_UPDATED:
-                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
-                        // TODO: See if we need to do something here
-                    } else {
-                        eventExecutor.execute(() -> processNodeUpdate(k8sNode));
-                    }
+                    eventExecutor.execute(() -> processNodeUpdate(k8sNode));
                     break;
                 case K8S_NODE_INCOMPLETE:
                 default:
@@ -375,7 +367,7 @@ public class K8sRoutingSnatHandler {
                 setExtIntfArpRule(node, true);
             }
             // setSnatDownstreamRule(node, true);
-            setContainerToExtRule(node, true);
+            // setContainerToExtRule(node, true);
             setExtOvsRoutingRules(node);
         }
 
