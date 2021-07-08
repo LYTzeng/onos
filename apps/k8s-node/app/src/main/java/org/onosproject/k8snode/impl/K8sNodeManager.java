@@ -209,7 +209,7 @@ public class K8sNodeManager
         checkNotNull(node, ERR_NULL_NODE);
 
         K8sNode intNode;
-        // K8sNode extNode;
+        K8sNode extNode;
         K8sNode localNode;
 
         K8sNode existingNode = nodeStore.node(node.hostname());
@@ -227,29 +227,35 @@ public class K8sNodeManager
                     NOT_DUPLICATED_MSG, intNode.intgBridge());
         }
 
-        // DeviceId existExtBridge = nodeStore.node(node.hostname()).extBridge();
+        DeviceId existExtBridge = nodeStore.node(node.hostname()).extBridge();
 
-        // if (intNode.extBridge() == null) {
-        //     extNode = intNode.updateExtBridge(existExtBridge);
-        //     checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
-        //             NOT_DUPLICATED_MSG, extNode.extBridge());
-        // } else {
-        //     extNode = intNode;
-        //     checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
-        //             NOT_DUPLICATED_MSG, extNode.extBridge());
-        // }
+        if(intNode.type().equals(K8sNode.Type.EXTOVS)){
+            if (intNode.extBridge() == null) {
+                extNode = intNode.updateExtBridge(existExtBridge);
+                checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+                        NOT_DUPLICATED_MSG, extNode.extBridge());
+            } else {
+                extNode = intNode;
+                checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+                        NOT_DUPLICATED_MSG, extNode.extBridge());
+            }
+        }
 
         // TODO: Remove useless local bridge in the future
         DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
 
-        if (intNode.localBridge() == null) {
-            localNode = intNode.updateLocalBridge(existLocalBridge);
-            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                    NOT_DUPLICATED_MSG, localNode.localBridge());
+        if (!intNode.type().equals(K8sNode.Type.EXTOVS)){
+            if (intNode.localBridge() == null) {
+                localNode = intNode.updateLocalBridge(existLocalBridge);
+                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                        NOT_DUPLICATED_MSG, localNode.localBridge());
+            } else {
+                localNode = intNode;
+                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                        NOT_DUPLICATED_MSG, localNode.localBridge());
+            }
         } else {
-            localNode = intNode;
-            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                    NOT_DUPLICATED_MSG, localNode.localBridge());
+            localNode = extNode;
         }
 
         nodeStore.updateNode(localNode);
