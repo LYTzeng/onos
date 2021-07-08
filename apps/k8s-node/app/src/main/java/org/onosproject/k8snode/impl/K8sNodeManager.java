@@ -238,9 +238,9 @@ public class K8sNodeManager
                 extNode = intNode;
                 checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
                         NOT_DUPLICATED_MSG, extNode.extBridge());
-                nodeStore.updateNode(extNode);
-                log.info(String.format(MSG_NODE, extNode.hostname(), MSG_UPDATED));
             }
+            nodeStore.updateNode(extNode);
+            log.info(String.format(MSG_NODE, extNode.hostname(), MSG_UPDATED));
         } else {
             // TODO: Remove useless local bridge in the future
             DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
@@ -252,9 +252,9 @@ public class K8sNodeManager
                 localNode = intNode;
                 checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
                         NOT_DUPLICATED_MSG, localNode.localBridge());
-                nodeStore.updateNode(localNode);
-                log.info(String.format(MSG_NODE, localNode.hostname(), MSG_UPDATED));
             }
+            nodeStore.updateNode(localNode);
+            log.info(String.format(MSG_NODE, localNode.hostname(), MSG_UPDATED));
         }
     }
 
