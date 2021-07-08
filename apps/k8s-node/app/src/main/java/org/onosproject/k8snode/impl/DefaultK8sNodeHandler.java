@@ -378,20 +378,20 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         }
 
         // integration bridge -> external bridge
-        PatchDescription brIntExtPatchDesc =
-                DefaultPatchDescription.builder()
-                .deviceId(INTEGRATION_BRIDGE)
-                .ifaceName(INTEGRATION_TO_EXTERNAL_BRIDGE)
-                .peer(PHYSICAL_EXTERNAL_BRIDGE)
-                .build();
+        // PatchDescription brIntExtPatchDesc =
+        //         DefaultPatchDescription.builder()
+        //         .deviceId(INTEGRATION_BRIDGE)
+        //         .ifaceName(INTEGRATION_TO_EXTERNAL_BRIDGE)
+        //         .peer(PHYSICAL_EXTERNAL_BRIDGE)
+        //         .build();
 
         // external bridge -> integration bridge
-        PatchDescription brExtIntPatchDesc =
-                DefaultPatchDescription.builder()
-                .deviceId(EXTERNAL_BRIDGE)
-                .ifaceName(PHYSICAL_EXTERNAL_BRIDGE)
-                .peer(INTEGRATION_TO_EXTERNAL_BRIDGE)
-                .build();
+        // PatchDescription brExtIntPatchDesc =
+        //         DefaultPatchDescription.builder()
+        //         .deviceId(EXTERNAL_BRIDGE)
+        //         .ifaceName(PHYSICAL_EXTERNAL_BRIDGE)
+        //         .peer(INTEGRATION_TO_EXTERNAL_BRIDGE)
+        //         .build();
 
         // integration bridge -> local bridge
         PatchDescription brIntLocalPatchDesc =
@@ -410,8 +410,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
                         .build();
 
         InterfaceConfig ifaceConfig = device.as(InterfaceConfig.class);
-        ifaceConfig.addPatchMode(INTEGRATION_TO_EXTERNAL_BRIDGE, brIntExtPatchDesc);
-        ifaceConfig.addPatchMode(PHYSICAL_EXTERNAL_BRIDGE, brExtIntPatchDesc);
+        // ifaceConfig.addPatchMode(INTEGRATION_TO_EXTERNAL_BRIDGE, brIntExtPatchDesc);
+        // ifaceConfig.addPatchMode(PHYSICAL_EXTERNAL_BRIDGE, brExtIntPatchDesc);
         ifaceConfig.addPatchMode(INTEGRATION_TO_LOCAL_BRIDGE, brIntLocalPatchDesc);
         ifaceConfig.addPatchMode(LOCAL_TO_INTEGRATION_BRIDGE, brLocalIntPatchDesc);
     }
@@ -444,6 +444,10 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
                 .ifaceName(PHYSICAL_EXTERNAL_BRIDGE)
                 .peer(INTEGRATION_TO_EXTERNAL_BRIDGE)
                 .build();
+
+        InterfaceConfig ifaceConfig = device.as(InterfaceConfig.class);
+        ifaceConfig.addPatchMode(INTEGRATION_TO_EXTERNAL_BRIDGE, brIntExtPatchDesc);
+        ifaceConfig.addPatchMode(PHYSICAL_EXTERNAL_BRIDGE, brExtIntPatchDesc);
     }
 
     /**
@@ -667,21 +671,6 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
             k8sNode.state().process(this, k8sNode);
         }
     }
-
-    // /**
-    //  * Bootstraps a new external ovs node.
-    //  *
-    //  * @param k8sNode external ovs node
-    //  */
-    // private void bootstrapExtOvsNode(K8sNode k8sNode) {
-    //     if (isCurrentStateDone(k8sNode)) {
-    //         setState(k8sNode, k8sNode.state().nextState());
-    //     } else {
-    //         log.trace("Processing {} state for {}", k8sNode.state(),
-    //                 k8sNode.hostname());
-    //         k8sNode.state().process(this, k8sNode);
-    //     }
-    // }
 
     private void processK8sNodeRemoved(K8sNode k8sNode) {
         OvsdbClientService client = getOvsdbClient(k8sNode, ovsdbPort, ovsdbController);

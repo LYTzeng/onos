@@ -582,7 +582,6 @@ public class K8sServiceHandler {
                         }
 
                         if (targetPort != 0) {
-                            // EXTOVS Flow 53-1
                             setUnshiftDomainRules(extOvsNode.intgBridge(), POD_TABLE,
                                     PRIORITY_NAT_RULE, serviceIp, sp.getPort(),
                                     sp.getProtocol(), podIp,

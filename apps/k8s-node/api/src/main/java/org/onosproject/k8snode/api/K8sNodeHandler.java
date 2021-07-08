@@ -79,7 +79,7 @@ public interface K8sNodeHandler {
     /**
      * Processes the given external OvS node for ext-ovs-created state.
      * After its bridges are created,
-     * it will mark the node state as ext-ovs-created.
+     * it will mark the node state as complete.
      *
      * @param k8sNode kubernetes node
      */
