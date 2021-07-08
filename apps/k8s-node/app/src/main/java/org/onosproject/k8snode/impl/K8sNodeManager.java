@@ -152,12 +152,13 @@ public class K8sNodeManager
         log.info("Modified");
     }
 
+    // Creation of k8s node
     @Override
     public void createNode(K8sNode node) {
         checkNotNull(node, ERR_NULL_NODE);
 
         K8sNode intNode;
-        K8sNode extNode;
+        // K8sNode extNode;
         K8sNode localNode;
 
         if (node.intgBridge() == null) {
@@ -185,32 +186,30 @@ public class K8sNodeManager
         // }
 
         // TODO: Remove useless local bridge in the future
-        if (node.type() != EXTOVS){
-            if (node.localBridge() == null) {
-                String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
-                checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
-                localNode = extNode.updateLocalBridge(DeviceId.deviceId(deviceIdStr));
-                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                        NOT_DUPLICATED_MSG, localNode.localBridge());
-            } else {
-                localNode = extNode;
-                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                        NOT_DUPLICATED_MSG, localNode.localBridge());
-            }
+        if (node.localBridge() == null) {
+            String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
+            checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
+            localNode = extNode.updateLocalBridge(DeviceId.deviceId(deviceIdStr));
+            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                    NOT_DUPLICATED_MSG, localNode.localBridge());
         } else {
-            localNode = extNode;
+            localNode = intNode;
+            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                    NOT_DUPLICATED_MSG, localNode.localBridge());
         }
 
+
         nodeStore.createNode(localNode);
-        log.info(String.format(MSG_NODE, extNode.hostname(), MSG_CREATED));
+        log.info(String.format(MSG_NODE, localNode.hostname(), MSG_CREATED));
     }
 
+    // Updates of k8s node
     @Override
     public void updateNode(K8sNode node) {
         checkNotNull(node, ERR_NULL_NODE);
 
         K8sNode intNode;
-        K8sNode extNode;
+        // K8sNode extNode;
         K8sNode localNode;
 
         K8sNode existingNode = nodeStore.node(node.hostname());
@@ -241,26 +240,23 @@ public class K8sNodeManager
         // }
 
         // TODO: Remove useless local bridge in the future
-        if (node.type() != EXTOVS){
-            DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
+        DeviceId existLocalBridge = nodeStore.node(node.hostname()).localBridge();
 
-            if (extNode.localBridge() == null) {
-                localNode = extNode.updateLocalBridge(existLocalBridge);
-                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                        NOT_DUPLICATED_MSG, localNode.localBridge());
-            } else {
-                localNode = extNode;
-                checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
-                        NOT_DUPLICATED_MSG, localNode.localBridge());
-            }
+        if (extNode.localBridge() == null) {
+            localNode = extNode.updateLocalBridge(existLocalBridge);
+            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                    NOT_DUPLICATED_MSG, localNode.localBridge());
         } else {
-            localNode = extNode;
+            localNode = intNode;
+            checkArgument(!hasLocalBridge(localNode.localBridge(), localNode.hostname()),
+                    NOT_DUPLICATED_MSG, localNode.localBridge());
         }
 
         nodeStore.updateNode(localNode);
-        log.info(String.format(MSG_NODE, extNode.hostname(), MSG_UPDATED));
+        log.info(String.format(MSG_NODE, localNode.hostname(), MSG_UPDATED));
     }
 
+    // removement of k8s node
     @Override
     public K8sNode removeNode(String hostname) {
         checkArgument(!Strings.isNullOrEmpty(hostname), ERR_NULL_HOSTNAME);
