@@ -203,9 +203,9 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         if (!deviceService.isAvailable(k8sNode.intgBridge())) {
             createBridge(k8sNode, INTEGRATION_BRIDGE, k8sNode.intgBridge());
         }
-        if (!deviceService.isAvailable(k8sNode.extBridge())) {
-            createBridge(k8sNode, EXTERNAL_BRIDGE, k8sNode.extBridge());
-        }
+        // if (!deviceService.isAvailable(k8sNode.extBridge())) {
+        //     createBridge(k8sNode, EXTERNAL_BRIDGE, k8sNode.extBridge());
+        // }
         if (!deviceService.isAvailable(k8sNode.localBridge())) {
             createBridge(k8sNode, LOCAL_BRIDGE, k8sNode.localBridge());
         }
@@ -585,10 +585,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
             log.error("Exception caused during init state checking...");
         }
 
-        return k8sNode.intgBridge() != null && k8sNode.extBridge() != null &&
-                deviceService.isAvailable(k8sNode.intgBridge()) &&
-                deviceService.isAvailable(k8sNode.extBridge()) &&
-                deviceService.isAvailable(k8sNode.localBridge());
+        return k8sNode.intgBridge() != null &&
+                deviceService.isAvailable(k8sNode.intgBridge());
     }
 
     private boolean isDeviceCreatedStateDone(K8sNode k8sNode) {
@@ -631,9 +629,8 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
             log.error("Exception caused during init state checking...");
         }
         
-        return node.intgBridge() != null && node.extBridge() != null &&
-            deviceService.isAvailable(node.intgBridge()) &&
-            deviceService.isAvailable(node.extBridge());
+        return node.intgBridge() != null && &&
+            deviceService.isAvailable(node.intgBridge());
     }
 
     /**
@@ -697,7 +694,7 @@ public class DefaultK8sNodeHandler implements K8sNodeHandler {
         client.dropBridge(INTEGRATION_BRIDGE);
 
         // delete external bridge from the node
-        client.dropBridge(EXTERNAL_BRIDGE);
+        // client.dropBridge(EXTERNAL_BRIDGE);
 
         // delete local bridge from the node
         client.dropBridge(LOCAL_BRIDGE);

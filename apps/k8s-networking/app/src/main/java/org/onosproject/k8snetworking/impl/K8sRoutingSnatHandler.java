@@ -268,7 +268,7 @@ public class K8sRoutingSnatHandler {
 
         k8sFlowRuleService.setRule(
                 appId,
-                k8sNode.extBridge(),
+                extOvs.extBridge(),
                 selector,
                 tBuilder.build(),
                 PRIORITY_STATEFUL_SNAT_RULE,
@@ -367,15 +367,16 @@ public class K8sRoutingSnatHandler {
             }
         }
 
-        private void processNodeCompletion(K8sNode k8sNode) {
+        private void processNodeCompletion(K8sNode node) {
             if (!isRelevantHelper()) {
                 return;
             }
-
-            setExtIntfArpRule(k8sNode, true);
-            // setSnatDownstreamRule(k8sNode, true);
-            setContainerToExtRule(k8sNode, true);
-            setExtOvsRoutingRules(k8sNode);
+            if (node.type().equals(K8sNode.Type.EXTOVS)) {
+                setExtIntfArpRule(node, true);
+            }
+            // setSnatDownstreamRule(node, true);
+            setContainerToExtRule(node, true);
+            setExtOvsRoutingRules(node);
         }
 
         private void processNodeUpdate(K8sNode k8sNode) {
@@ -395,32 +396,32 @@ public class K8sRoutingSnatHandler {
         public void event(K8sNetworkEvent event) {
             switch (event.type()) {
                 case K8S_PORT_ACTIVATED:
-                    eventExecutor.execute(() -> processPortActivation(event.port()));
+                    // eventExecutor.execute(() -> processPortActivation(event.port()));
                     break;
                 case K8S_PORT_REMOVED:
-                    eventExecutor.execute(() -> processPortRemoval(event.port()));
+                    // eventExecutor.execute(() -> processPortRemoval(event.port()));
                     break;
                 default:
                     break;
             }
         }
 
-        private void processPortActivation(K8sPort port) {
-            if (!isRelevantHelper()) {
-                return;
-            }
+        // private void processPortActivation(K8sPort port) {
+        //     if (!isRelevantHelper()) {
+        //         return;
+        //     }
 
-            k8sNodeService.completeNodes().forEach(n ->
-                    setExtToContainerRule(n, port, true));
-        }
+        //     k8sNodeService.completeNodes().forEach(n ->
+        //             setExtToContainerRule(n, port, true));
+        // }
 
-        private void processPortRemoval(K8sPort port) {
-            if (!isRelevantHelper()) {
-                return;
-            }
+        // private void processPortRemoval(K8sPort port) {
+        //     if (!isRelevantHelper()) {
+        //         return;
+        //     }
 
-            k8sNodeService.completeNodes().forEach(n ->
-                    setExtToContainerRule(n, port, false));
-        }
+        //     k8sNodeService.completeNodes().forEach(n ->
+        //             setExtToContainerRule(n, port, false));
+        // }
     }
 }

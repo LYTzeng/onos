@@ -185,7 +185,7 @@ public class K8sNodePortHandler {
             }
         });
 
-        setDefaultExtEgrRule(k8sNode, install);
+        // setDefaultExtEgrRule(k8sNode, install);
     }
 
     private void setDefaultExtEgrRule(K8sNode k8sNode, boolean install) {

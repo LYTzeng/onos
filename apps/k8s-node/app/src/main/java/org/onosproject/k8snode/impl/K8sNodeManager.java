@@ -172,17 +172,17 @@ public class K8sNodeManager
                     NOT_DUPLICATED_MSG, intNode.intgBridge());
         }
 
-        if (intNode.extBridge() == null) {
-            String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
-            checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
-            extNode = intNode.updateExtBridge(DeviceId.deviceId(deviceIdStr));
-            checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
-                    NOT_DUPLICATED_MSG, extNode.extBridge());
-        } else {
-            extNode = intNode;
-            checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
-                    NOT_DUPLICATED_MSG, extNode.extBridge());
-        }
+        // if (intNode.extBridge() == null) {
+        //     String deviceIdStr = genDpid(deviceIdCounter.incrementAndGet());
+        //     checkNotNull(deviceIdStr, ERR_NULL_DEVICE_ID);
+        //     extNode = intNode.updateExtBridge(DeviceId.deviceId(deviceIdStr));
+        //     checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+        //             NOT_DUPLICATED_MSG, extNode.extBridge());
+        // } else {
+        //     extNode = intNode;
+        //     checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+        //             NOT_DUPLICATED_MSG, extNode.extBridge());
+        // }
 
         // TODO: Remove useless local bridge in the future
         if (node.type() != EXTOVS){
@@ -228,17 +228,17 @@ public class K8sNodeManager
                     NOT_DUPLICATED_MSG, intNode.intgBridge());
         }
 
-        DeviceId existExtBridge = nodeStore.node(node.hostname()).extBridge();
+        // DeviceId existExtBridge = nodeStore.node(node.hostname()).extBridge();
 
-        if (intNode.extBridge() == null) {
-            extNode = intNode.updateExtBridge(existExtBridge);
-            checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
-                    NOT_DUPLICATED_MSG, extNode.extBridge());
-        } else {
-            extNode = intNode;
-            checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
-                    NOT_DUPLICATED_MSG, extNode.extBridge());
-        }
+        // if (intNode.extBridge() == null) {
+        //     extNode = intNode.updateExtBridge(existExtBridge);
+        //     checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+        //             NOT_DUPLICATED_MSG, extNode.extBridge());
+        // } else {
+        //     extNode = intNode;
+        //     checkArgument(!hasExtBridge(extNode.extBridge(), extNode.hostname()),
+        //             NOT_DUPLICATED_MSG, extNode.extBridge());
+        // }
 
         // TODO: Remove useless local bridge in the future
         if (node.type() != EXTOVS){

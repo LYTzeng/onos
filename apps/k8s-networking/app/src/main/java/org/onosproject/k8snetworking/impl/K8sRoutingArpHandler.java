@@ -200,8 +200,8 @@ public class K8sRoutingArpHandler {
                 ByteBuffer.wrap(ethRequest.serialize())));
     }
 
-    private void setArpReplyRule(K8sNode k8sNode, boolean install) {
-        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+    private void setArpReplyRule(K8sNode extOvs, boolean install) {
+
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_ARP)
                 .matchArpOp(ARP.OP_REPLY)
@@ -223,8 +223,7 @@ public class K8sRoutingArpHandler {
         );
     }
 
-    private void setPodArpRequestRule(K8sNode k8sNode, boolean install) {
-        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+    private void setPodArpRequestRule(K8sNode extOvs, boolean install) {
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchInPort(extOvs.extToIntgPatchPortNum())
                 .matchEthType(Ethernet.TYPE_ARP)
@@ -246,8 +245,7 @@ public class K8sRoutingArpHandler {
         );
     }
 
-    private void setPodArpReplyRule(K8sNode k8sNode, boolean install) {
-        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+    private void setPodArpReplyRule(K8sNode extOvs, boolean install) {
         TrafficSelector selector = DefaultTrafficSelector.builder()
                 .matchInPort(extOvs.extBridgePortNum())
                 .matchEthType(Ethernet.TYPE_ARP)
@@ -277,13 +275,14 @@ public class K8sRoutingArpHandler {
 
         @Override
         public void event(K8sNodeEvent event) {
-            K8sNode k8sNode = event.subject();
+            K8sNode node = event.subject();
             switch (event.type()) {
                 case K8S_NODE_COMPLETE:
-                    if(k8sNode.type() == K8sNode.Type.EXTOVS){
+                    if(node.type() == K8sNode.Type.EXTOVS){
                         // TODO: See if we need to do something here
+                        eventExecutor.execute(() -> processNodeCompletion(node));
                     } else {
-                        eventExecutor.execute(() -> processNodeCompletion(k8sNode));
+                        // Do Nothing
                     }
                     break;
                 case K8S_NODE_INCOMPLETE:
@@ -292,14 +291,14 @@ public class K8sRoutingArpHandler {
             }
         }
 
-        private void processNodeCompletion(K8sNode k8sNode) {
+        private void processNodeCompletion(K8sNode node) {
             if (!isRelevantHelper()) {
                 return;
             }
 
-            setArpReplyRule(k8sNode, true);
-            setPodArpRequestRule(k8sNode, true);
-            setPodArpReplyRule(k8sNode, true);
+            setArpReplyRule(node, true);
+            setPodArpRequestRule(node, true);
+            setPodArpReplyRule(node, true);
 
             try {
                 sleep(SLEEP_MS);
@@ -307,7 +306,7 @@ public class K8sRoutingArpHandler {
                 log.error("Exception caused during ARP requesting...");
             }
 
-            sendArpRequest(k8sNode);
+            sendArpRequest(node);
         }
     }
 

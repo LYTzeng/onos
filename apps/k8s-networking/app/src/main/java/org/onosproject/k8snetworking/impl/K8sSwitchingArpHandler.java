@@ -320,14 +320,14 @@ public class K8sSwitchingArpHandler {
                 String targetIpPrefix = targetIp.toString().split("\\.")[1];
                 String nodePrefix = NODE_IP_PREFIX + "." + targetIpPrefix;
 
-                String exBridgeCidr = k8sNodeService.completeNodes().stream()
+                String exBridgeCidr = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream()
                         .map(n -> n.extBridgeIp().toString()).findAny().orElse(null);
 
                 if (exBridgeCidr != null) {
                     String extBridgeIp = unshiftIpDomain(targetIp.toString(),
                             nodePrefix, exBridgeCidr);
 
-                    replyMac = k8sNodeService.completeNodes().stream()
+                    replyMac = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream()
                             .filter(n -> extBridgeIp.equals(n.extBridgeIp().toString()))
                             .map(K8sNode::extBridgeMac).findAny().orElse(null);
 
@@ -343,8 +343,9 @@ public class K8sSwitchingArpHandler {
                         K8sNode k8sNode = k8sNodeService.node(cp.deviceId());
 
                         if (k8sNode != null) {
-                            setArpRequest(k8sNode.extBridgeMac().toBytes(),
-                                    k8sNode.extBridgeIp().toOctets(),
+                            K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+                            setArpRequest(extOvs.extBridgeMac().toBytes(),
+                                    extOvs.extBridgeIp().toOctets(),
                                     IpAddress.valueOf(extBridgeIp).toOctets(),
                                     k8sNode);
                             context.block();
@@ -387,9 +388,10 @@ public class K8sSwitchingArpHandler {
         ARP arpPacket = (ARP) ethPacket.getPayload();
         ConnectPoint cp = context.inPacket().receivedFrom();
         K8sNode k8sNode = k8sNodeService.node(cp.deviceId());
+        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
 
         if (k8sNode != null &&
-                ethPacket.getDestinationMAC().equals(k8sNode.extBridgeMac())) {
+                ethPacket.getDestinationMAC().equals(extOvs.extBridgeMac())) {
             IpAddress srcIp = IpAddress.valueOf(IpAddress.Version.INET,
                     arpPacket.getSenderProtocolAddress());
             MacAddress srcMac = MacAddress.valueOf(arpPacket.getSenderHardwareAddress());

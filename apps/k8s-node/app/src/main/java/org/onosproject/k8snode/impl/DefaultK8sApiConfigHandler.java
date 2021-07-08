@@ -199,9 +199,9 @@ public class DefaultK8sApiConfigHandler {
 
         Map<String, String> annots = node.getMetadata().getAnnotations();
 
-        String extIntf = annots.get(EXT_INTF_NAME);
+        // String extIntf = annots.get(EXT_INTF_NAME);
         String extGatewayIpStr = annots.get(EXT_GATEWAY_IP);
-        String extBridgeIpStr = annots.get(EXT_BRIDGE_IP);
+        // String extBridgeIpStr = annots.get(EXT_BRIDGE_IP);
         String extOvsIntf = annots.get(EXT_OVS_INTF_NAME);
         String extOvsIpStr = annots.get(EXT_OVS_IP);
         IpAddress controllerIp = IpAddress.valueOf(annots.get(ONOS_IP));
@@ -221,10 +221,10 @@ public class DefaultK8sApiConfigHandler {
                 .managementIp(managementIp)
                 .controllerIp(controllerIp)
                 .dataIp(dataIp)
-                .extIntf(extIntf)
+                // .extIntf(extIntf)
                 .type(nodeType)
                 .state(PRE_ON_BOARD)
-                .extBridgeIp(IpAddress.valueOf(extBridgeIpStr))
+                // .extBridgeIp(IpAddress.valueOf(extBridgeIpStr))
                 .extGatewayIp(IpAddress.valueOf(extGatewayIpStr))
                 .podCidr(node.getSpec().getPodCIDR())
                 .extOvsIntf(extOvsIntf)
