@@ -776,7 +776,7 @@ public class K8sServiceHandler {
         sBuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
             .matchIPSrc(IpPrefix.valueOf(srcShifterNodeCidr))
-            .matchIPDst(IpAddress.valueOf(podIp), HOST_PREFIX);
+            .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
 
         tBuilder = DefaultTrafficTreatment.builder()
             .setOutput(extOvs.customIntgPortNum(interfaceName));
