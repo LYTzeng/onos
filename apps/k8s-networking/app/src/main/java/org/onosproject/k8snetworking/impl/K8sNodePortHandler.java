@@ -353,13 +353,10 @@ public class K8sNodePortHandler {
             return;
         }
 
-        String shiftedIp = unshiftIpDomain(extBridgeIp, extBridgePrefix, nodePrefix);
-
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
                 .matchInPort(extOvs.extToIntgPatchPortNum())
-                .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(clusterIp), HOST_CIDR))
-                .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(shiftedIp), HOST_CIDR));
+                .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(clusterIp), HOST_CIDR));
 
         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
                 .setIpSrc(extOvs.extBridgeIp())

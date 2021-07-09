@@ -771,12 +771,12 @@ public class K8sServiceHandler {
                 ROUTING_TABLE,
                 install);
 
-        String srcShifterNodeCidr = NODE_IP_PREFIX + "."
-            + podIp.split("\\.")[2] + B_CLASS_SUFFIX;
+        String srcShifterNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
         
         sBuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
-            .matchIPSrc(IpPrefix.valueOf(srcShifterNodeCidr));
+            .matchIPSrc(IpPrefix.valueOf(srcShifterNodeCidr))
+            .matchIPDst(IpAddress.valueOf(podIp), HOST_PREFIX));
 
         tBuilder = DefaultTrafficTreatment.builder()
             .setOutput(extOvs.customIntgPortNum(interfaceName));
