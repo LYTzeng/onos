@@ -710,6 +710,8 @@ public class K8sServiceHandler {
                                        int priority, String serviceIp,
                                        ServicePort servicePort, String protocol,
                                        String podIp, int podPort, boolean install) {
+        K8sNode extOvs = k8sNodeService.node(deviceId);
+
         // EXTOVS Flow 53-1
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
@@ -761,8 +763,7 @@ public class K8sServiceHandler {
         }
 
         tBuilder = DefaultTrafficTreatment.builder()
-                .setIpSrc(IpAddress.valueOf(serviceIp))
-                .transition(ROUTING_TABLE);
+            .setOutput(extOvs.intgToExtPatchPortNum());
 
         if (TCP.equals(protocol)) {
             tBuilder.setTcpSrc(TpPort.tpPort(servicePort.getPort()));
@@ -789,8 +790,6 @@ public class K8sServiceHandler {
         K8sNode node = k8sNodeService.completeNodes().stream().filter(n -> n.podCidr().equals(podCidr)).findFirst().get();
         String dataIpStr = node.dataIp().toString();
         String interfaceName = "eth" + dataIpStr.split("\\.")[3];
-
-        K8sNode extOvs = k8sNodeService.node(deviceId);
 
         sBuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
