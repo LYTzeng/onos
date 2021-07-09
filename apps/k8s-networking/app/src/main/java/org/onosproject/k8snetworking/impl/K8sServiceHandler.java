@@ -585,7 +585,7 @@ public class K8sServiceHandler {
 
                         if (targetPort != 0) {
                             setUnshiftDomainRules(extOvsNode.intgBridge(), POD_TABLE,
-                                    PRIORITY_NAT_RULE, serviceIp, sp.getPort(),
+                                    PRIORITY_NAT_RULE, serviceIp, sp,
                                     sp.getProtocol(), podIp,
                                     targetPort, install);
                         }
@@ -747,7 +747,7 @@ public class K8sServiceHandler {
         // Similar to the flow above, but output to kbr-int-ex instead.
         String srcShifterNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
 
-        TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
+        sBuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
             .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_CIDR_NUM))
             .matchIPDst(IpPrefix.valueOf(srcShifterNodeCidr));
@@ -760,7 +760,7 @@ public class K8sServiceHandler {
                     .matchUdpSrc(TpPort.tpPort(podPort));
         }
 
-        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
+        tBuilder = DefaultTrafficTreatment.builder()
                 .setIpSrc(IpAddress.valueOf(serviceIp))
                 .transition(ROUTING_TABLE);
 
@@ -835,7 +835,7 @@ public class K8sServiceHandler {
         int nodePort = servicePort.getNodePort();
         int svcPort = servicePort.getPort();
 
-        DeviceId deviceId = extOvs.extBridge();
+        DeviceId extBrDeviceId = extOvs.extBridge();
 
         sBuilder = DefaultTrafficSelector.builder()
                 .matchEthType(Ethernet.TYPE_IPV4)
@@ -864,13 +864,13 @@ public class K8sServiceHandler {
         }
 
         ExtensionTreatment loadTreatment = buildLoadExtension(
-                deviceService.getDevice(deviceId), B_CLASS, DST, prefix);
-        tBuilder.extension(loadTreatment, deviceId)
+                deviceService.getDevice(extBrDeviceId), B_CLASS, DST, prefix);
+        tBuilder.extension(loadTreatment, extBrDeviceId)
                 .setOutput(extOvs.extBridgePortNum());
 
         k8sFlowRuleService.setRule(
                 appId,
-                deviceId,
+                extBrDeviceId,
                 sBuilder.build(),
                 tBuilder.build(),
                 PRIORITY_NODE_PORT_REMOTE_RULE,
