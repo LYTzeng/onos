@@ -169,7 +169,7 @@ public class K8sNodePortHandler {
         for (ServicePort servicePort : service.getSpec().getPorts()) {
             setNodeToServiceRules(k8sNode, clusterIp, servicePort, install);
             setServiceToNodeLocalRules(k8sNode, clusterIp, servicePort, install);
-            setServiceToNodeRemoteRules(k8sNode, clusterIp, servicePort, install);
+        //     setServiceToNodeRemoteRules(k8sNode, clusterIp, servicePort, install);
         //     setExtToIngrRules(k8sNode, servicePort, install);
         }
 
@@ -395,57 +395,56 @@ public class K8sNodePortHandler {
                 install);
     }
 
-    // EXTOVS kbr-ex 0-4
-    private void setServiceToNodeRemoteRules(K8sNode k8sNode,
-                                             String clusterIp,
-                                             ServicePort servicePort,
-                                             boolean install) {
-        String protocol = servicePort.getProtocol();
-        int nodePort = servicePort.getNodePort();
-        int svcPort = servicePort.getPort();
-        K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
-        DeviceId deviceId = extOvs.extBridge();
+//     private void setServiceToNodeRemoteRules(K8sNode k8sNode,
+//                                              String clusterIp,
+//                                              ServicePort servicePort,
+//                                              boolean install) {
+//         String protocol = servicePort.getProtocol();
+//         int nodePort = servicePort.getNodePort();
+//         int svcPort = servicePort.getPort();
+//         K8sNode extOvs = k8sNodeService.nodes(K8sNode.Type.EXTOVS).stream().findFirst().get();
+//         DeviceId deviceId = extOvs.extBridge();
 
-        TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
-                .matchEthType(Ethernet.TYPE_IPV4)
-                .matchInPort(extOvs.extToIntgPatchPortNum())
-                .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(clusterIp), HOST_CIDR));
+//         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
+//                 .matchEthType(Ethernet.TYPE_IPV4)
+//                 .matchInPort(extOvs.extToIntgPatchPortNum())
+//                 .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(clusterIp), HOST_CIDR));
 
-        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
-                .setIpSrc(extOvs.extBridgeIp())
-                .setEthSrc(extOvs.extBridgeMac());
+//         TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
+//                 .setIpSrc(extOvs.extBridgeIp())
+//                 .setEthSrc(extOvs.extBridgeMac());
 
-        if (TCP.equals(protocol)) {
-            sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
-                    .matchTcpSrc(TpPort.tpPort(svcPort));
-            tBuilder.setTcpSrc(TpPort.tpPort(nodePort));
-        } else if (UDP.equals(protocol)) {
-            sBuilder.matchIPProtocol(IPv4.PROTOCOL_UDP)
-                    .matchUdpSrc(TpPort.tpPort(svcPort));
-            tBuilder.setUdpSrc(TpPort.tpPort(nodePort));
-        }
+//         if (TCP.equals(protocol)) {
+//             sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
+//                     .matchTcpSrc(TpPort.tpPort(svcPort));
+//             tBuilder.setTcpSrc(TpPort.tpPort(nodePort));
+//         } else if (UDP.equals(protocol)) {
+//             sBuilder.matchIPProtocol(IPv4.PROTOCOL_UDP)
+//                     .matchUdpSrc(TpPort.tpPort(svcPort));
+//             tBuilder.setUdpSrc(TpPort.tpPort(nodePort));
+//         }
 
-        String gatewayIp = extOvs.extGatewayIp().toString();
-        String prefix = getBclassIpPrefixFromCidr(gatewayIp);
+//         String gatewayIp = extOvs.extGatewayIp().toString();
+//         String prefix = getBclassIpPrefixFromCidr(gatewayIp);
 
-        if (prefix == null) {
-            return;
-        }
+//         if (prefix == null) {
+//             return;
+//         }
 
-        ExtensionTreatment loadTreatment = buildLoadExtension(
-                deviceService.getDevice(deviceId), B_CLASS, DST, prefix);
-        tBuilder.extension(loadTreatment, deviceId)
-                .setOutput(extOvs.extBridgePortNum());
+//         ExtensionTreatment loadTreatment = buildLoadExtension(
+//                 deviceService.getDevice(deviceId), B_CLASS, DST, prefix);
+//         tBuilder.extension(loadTreatment, deviceId)
+//                 .setOutput(extOvs.extBridgePortNum());
 
-        k8sFlowRuleService.setRule(
-                appId,
-                deviceId,
-                sBuilder.build(),
-                tBuilder.build(),
-                PRIORITY_NODE_PORT_REMOTE_RULE,
-                EXT_ENTRY_TABLE,
-                install);
-    }
+//         k8sFlowRuleService.setRule(
+//                 appId,
+//                 deviceId,
+//                 sBuilder.build(),
+//                 tBuilder.build(),
+//                 PRIORITY_NODE_PORT_REMOTE_RULE,
+//                 EXT_ENTRY_TABLE,
+//                 install);
+//     }
 
     private String getServiceCidr() {
         Set<ConfigProperty> properties =

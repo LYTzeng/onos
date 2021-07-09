@@ -107,6 +107,7 @@ import static org.onosproject.k8snetworking.api.Constants.PRIORITY_CIDR_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_CT_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_INTER_ROUTING_RULE;
 import static org.onosproject.k8snetworking.api.Constants.PRIORITY_NAT_RULE;
+import static org.onosproject.k8snetworking.api.Constants.PRIORITY_NODE_PORT_REMOTE_RULE;
 import static org.onosproject.k8snetworking.api.Constants.ROUTING_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.SERVICE_FAKE_MAC_STR;
 import static org.onosproject.k8snetworking.api.Constants.SERVICE_TABLE;
@@ -115,6 +116,7 @@ import static org.onosproject.k8snetworking.api.Constants.SHIFTED_IP_PREFIX;
 import static org.onosproject.k8snetworking.api.Constants.SRC;
 import static org.onosproject.k8snetworking.api.Constants.STAT_EGRESS_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.INTG_SVC_FILTER;
+import static org.onosproject.k8snetworking.api.Constants.EXT_ENTRY_TABLE;
 import static org.onosproject.k8snetworking.api.Constants.HOST_PREFIX;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getBclassIpPrefixFromCidr;
 import static org.onosproject.k8snetworking.util.K8sNetworkingUtil.getCclassIpPrefixFromCidr;
@@ -706,11 +708,12 @@ public class K8sServiceHandler {
 
     private void setUnshiftDomainRules(DeviceId deviceId, int installTable,
                                        int priority, String serviceIp,
-                                       int servicePort, String protocol,
+                                       ServicePort servicePort, String protocol,
                                        String podIp, int podPort, boolean install) {
+        // EXTOVS Flow 53-1
         TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
-                .matchEthType(Ethernet.TYPE_IPV4)
-                .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_CIDR_NUM));
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_CIDR_NUM));
 
         if (TCP.equals(protocol)) {
             sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
@@ -725,12 +728,11 @@ public class K8sServiceHandler {
                 .transition(ROUTING_TABLE);
 
         if (TCP.equals(protocol)) {
-            tBuilder.setTcpSrc(TpPort.tpPort(servicePort));
+            tBuilder.setTcpSrc(TpPort.tpPort(servicePort.getPort()));
         } else if (UDP.equals(protocol)) {
-            tBuilder.setUdpSrc(TpPort.tpPort(servicePort));
+            tBuilder.setUdpSrc(TpPort.tpPort(servicePort.getPort()));
         }
 
-        // EXTOVS Flow 53-1
         k8sFlowRuleService.setRule(
                 appId,
                 deviceId,
@@ -740,6 +742,46 @@ public class K8sServiceHandler {
                 installTable,
                 install);
 
+        // EXTOVS Flow 53-0
+        // Forwarding packets that reply to client from a Pod
+        // Similar to the flow above, but output to kbr-int-ex instead.
+        String srcShifterNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
+
+        TrafficSelector.Builder sBuilder = DefaultTrafficSelector.builder()
+            .matchEthType(Ethernet.TYPE_IPV4)
+            .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_CIDR_NUM))
+            .matchIPDst(IpPrefix.valueOf(srcShifterNodeCidr));
+
+        if (TCP.equals(protocol)) {
+            sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
+                    .matchTcpSrc(TpPort.tpPort(podPort));
+        } else if (UDP.equals(protocol)) {
+            sBuilder.matchIPProtocol(IPv4.PROTOCOL_UDP)
+                    .matchUdpSrc(TpPort.tpPort(podPort));
+        }
+
+        TrafficTreatment.Builder tBuilder = DefaultTrafficTreatment.builder()
+                .setIpSrc(IpAddress.valueOf(serviceIp))
+                .transition(ROUTING_TABLE);
+
+        if (TCP.equals(protocol)) {
+            tBuilder.setTcpSrc(TpPort.tpPort(servicePort.getPort()));
+        } else if (UDP.equals(protocol)) {
+            tBuilder.setUdpSrc(TpPort.tpPort(servicePort.getPort()));
+        }
+
+        k8sFlowRuleService.setRule(
+                appId,
+                deviceId,
+                sBuilder.build(),
+                tBuilder.build(),
+                PRIORITY_NODE_PORT_REMOTE_RULE,
+                installTable,
+                install);
+                
+        // Install flows to external OvS to handle when SVC group bucket routes 
+        // the packet back to the same node
+        // EXTOVS Flow 60-1
         String shiftedDstPodIp = shiftIpDomain(podIp, SHIFTED_IP_PREFIX);
         String srcPodClassCPrefix = getCclassIpPrefixFromCidr(podIp);
         String podCidr = srcPodClassCPrefix + C_CLASS_SUFFIX;
@@ -759,9 +801,6 @@ public class K8sServiceHandler {
             .setIpSrc(IpAddress.valueOf(serviceIp))
             .setOutput(extOvs.customIntgPortNum(interfaceName));
 
-        // Install flows to external OvS to handle when SVC group bucket routes 
-        // the packet back to the same node
-        // EXTOVS Flow 60-1
         k8sFlowRuleService.setRule(
                 appId,
                 deviceId,
@@ -771,8 +810,8 @@ public class K8sServiceHandler {
                 ROUTING_TABLE,
                 install);
 
-        String srcShifterNodeCidr = NODE_IP_PREFIX + A_CLASS_SUFFIX;
-        
+        // Forward the shifted external src IP cidr (182.0.X.X) to K8s Nodes
+        // EXTOVS Flow 60-3
         sBuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
             .matchIPSrc(IpPrefix.valueOf(srcShifterNodeCidr))
@@ -781,7 +820,7 @@ public class K8sServiceHandler {
         tBuilder = DefaultTrafficTreatment.builder()
             .setOutput(extOvs.customIntgPortNum(interfaceName));
 
-        // EXTOVS Flow 60-3
+
         k8sFlowRuleService.setRule(
             appId,
             deviceId,
@@ -789,7 +828,54 @@ public class K8sServiceHandler {
             tBuilder.build(),
             PRIORITY_NAT_RULE,
             ROUTING_TABLE,
-            install);        
+            install);       
+            
+        // Rules for packets replied to the client outside the cluster
+        // EXTOVS kbr-ex 0-4
+        int nodePort = servicePort.getNodePort();
+        int svcPort = servicePort.getPort();
+
+        DeviceId deviceId = extOvs.extBridge();
+
+        sBuilder = DefaultTrafficSelector.builder()
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchInPort(extOvs.extToIntgPatchPortNum())
+                .matchIPSrc(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_CIDR_NUM));
+
+        tBuilder = DefaultTrafficTreatment.builder()
+                .setIpSrc(extOvs.extBridgeIp())
+                .setEthSrc(extOvs.extBridgeMac());
+
+        if (TCP.equals(protocol)) {
+            sBuilder.matchIPProtocol(IPv4.PROTOCOL_TCP)
+                    .matchTcpSrc(TpPort.tpPort(svcPort));
+            tBuilder.setTcpSrc(TpPort.tpPort(nodePort));
+        } else if (UDP.equals(protocol)) {
+            sBuilder.matchIPProtocol(IPv4.PROTOCOL_UDP)
+                    .matchUdpSrc(TpPort.tpPort(svcPort));
+            tBuilder.setUdpSrc(TpPort.tpPort(nodePort));
+        }
+
+        String gatewayIp = extOvs.extGatewayIp().toString();
+        String prefix = getBclassIpPrefixFromCidr(gatewayIp);
+
+        if (prefix == null) {
+            return;
+        }
+
+        ExtensionTreatment loadTreatment = buildLoadExtension(
+                deviceService.getDevice(deviceId), B_CLASS, DST, prefix);
+        tBuilder.extension(loadTreatment, deviceId)
+                .setOutput(extOvs.extBridgePortNum());
+
+        k8sFlowRuleService.setRule(
+                appId,
+                deviceId,
+                sBuilder.build(),
+                tBuilder.build(),
+                PRIORITY_NODE_PORT_REMOTE_RULE,
+                EXT_ENTRY_TABLE,
+                install);
     }
 
     // Flow OLD-60-3
