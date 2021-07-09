@@ -314,7 +314,8 @@ public class K8sNodePortHandler {
         }
 
         String podCidr = k8sNetworkService.network(k8sNode.hostname()).cidr();
-        String prefix = NODE_IP_PREFIX + "." + podCidr.split("\\.")[2];
+        // String prefix = NODE_IP_PREFIX + "." + podCidr.split("\\.")[2];
+        String prefix = NODE_IP_PREFIX + ".0";
 
         ExtensionTreatment loadTreatment = buildLoadExtension(
                 deviceService.getDevice(deviceId), B_CLASS, SRC, prefix);

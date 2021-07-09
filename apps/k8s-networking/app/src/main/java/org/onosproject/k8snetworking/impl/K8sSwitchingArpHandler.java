@@ -347,7 +347,7 @@ public class K8sSwitchingArpHandler {
                             setArpRequest(extOvs.extBridgeMac().toBytes(),
                                     extOvs.extBridgeIp().toOctets(),
                                     IpAddress.valueOf(extBridgeIp).toOctets(),
-                                    k8sNode);
+                                    k8sNode, extOvs);
                             context.block();
                             return;
                         }
@@ -395,6 +395,7 @@ public class K8sSwitchingArpHandler {
             IpAddress srcIp = IpAddress.valueOf(IpAddress.Version.INET,
                     arpPacket.getSenderProtocolAddress());
             MacAddress srcMac = MacAddress.valueOf(arpPacket.getSenderHardwareAddress());
+            log.info("Received ARP reply: Target IP: {}, MAC: {}", srcIp, srcMac);
 
             // we only add the host IP - MAC map store once,
             // mutable MAP scenario is not considered for now
@@ -405,16 +406,16 @@ public class K8sSwitchingArpHandler {
     }
 
     private void setArpRequest(byte[] senderMac, byte[] senderIp,
-                               byte[] targetIp, K8sNode k8sNode) {
+                               byte[] targetIp, K8sNode k8sNode, K8sNode extOvs) {
         Ethernet ethRequest = ARP.buildArpRequest(senderMac,
                                                   senderIp, targetIp, VlanId.NO_VID);
 
         TrafficTreatment treatment = DefaultTrafficTreatment.builder()
-                .setOutput(k8sNode.intgToExtPatchPortNum())
+                .setOutput(extOvs.intgToExtPatchPortNum())
                 .build();
 
         packetService.emit(new DefaultOutboundPacket(
-                k8sNode.intgBridge(),
+                extOvs.intgBridge(),
                 treatment,
                 ByteBuffer.wrap(ethRequest.serialize())));
     }
