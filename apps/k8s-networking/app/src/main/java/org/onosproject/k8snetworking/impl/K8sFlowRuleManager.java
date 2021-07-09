@@ -286,6 +286,9 @@ public class K8sFlowRuleManager implements K8sFlowRuleService {
         // T30 -> T35
         connectTables(deviceId, INTG_PORT_CLASSIFY_TABLE, INTG_ARP_TABLE);
 
+        // T35 -> T50
+        connectTables(deviceId, INTG_ARP_TABLE, GROUPING_TABLE);
+
         // T50 -> T60
         connectTables(deviceId, GROUPING_TABLE, ROUTING_TABLE);
     }
