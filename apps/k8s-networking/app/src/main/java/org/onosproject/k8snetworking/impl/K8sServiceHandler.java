@@ -729,11 +729,11 @@ public class K8sServiceHandler {
                 .setIpSrc(IpAddress.valueOf(serviceIp))
                 .transition(ROUTING_TABLE);
 
-        if (TCP.equals(protocol)) {
-            tBuilder.setTcpSrc(TpPort.tpPort(servicePort.getPort()));
-        } else if (UDP.equals(protocol)) {
-            tBuilder.setUdpSrc(TpPort.tpPort(servicePort.getPort()));
-        }
+        // if (TCP.equals(protocol)) {
+        //     tBuilder.setTcpSrc(TpPort.tpPort(servicePort.getPort()));
+        // } else if (UDP.equals(protocol)) {
+        //     tBuilder.setUdpSrc(TpPort.tpPort(servicePort.getPort()));
+        // }
 
         k8sFlowRuleService.setRule(
                 appId,
