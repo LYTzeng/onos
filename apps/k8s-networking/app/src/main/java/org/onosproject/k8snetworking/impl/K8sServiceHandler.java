@@ -797,7 +797,7 @@ public class K8sServiceHandler {
             .matchIPDst(IpPrefix.valueOf(IpAddress.valueOf(podIp), HOST_PREFIX));
 
         tBuilder = DefaultTrafficTreatment.builder()
-            .setIpSrc(IpAddress.valueOf(serviceIp))
+            // .setIpSrc(IpAddress.valueOf(serviceIp))
             .setOutput(extOvs.customIntgPortNum(interfaceName));
 
         k8sFlowRuleService.setRule(
